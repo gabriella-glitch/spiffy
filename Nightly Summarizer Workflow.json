@@ -1,0 +1,921 @@
+{
+  "name": "Nightly Summarizer Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": 23,
+              "minute": 30
+            }
+          ]
+        }
+      },
+      "id": "019d7588-3b6a-411f-81f0-3f4dc48cadcb",
+      "name": "Daily at 11:30 PM",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appTxK7lxuhWmaadj",
+          "mode": "list",
+          "cachedResultName": "Spiffy OS",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblqcjZpU2VFD3rTY",
+          "mode": "list",
+          "cachedResultName": "Logs",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj/tblqcjZpU2VFD3rTY"
+        },
+        "filterByFormula": "=AND(\n  IS_AFTER({Timestamp}, '{{ $json.todayStart }}'),\n  IS_BEFORE({Timestamp}, '{{ $json.todayEnd }}')\n)\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        0
+      ],
+      "id": "aaeeb46c-994c-4a57-9ff9-c95de6594f36",
+      "name": "Search records",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "uAUHMzwbZX3qw9E6",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "48134682-d870-4c47-b7b9-05c482d7ecb1",
+              "leftValue": "={{ $json[\"records\"] ? $json[\"records\"].length : $items().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        0
+      ],
+      "id": "5ebd7fb7-55a3-43de-b56e-078a444273a1",
+      "name": "Does the input array have >0 items?"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\"message\":\"No logs today\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        96
+      ],
+      "id": "bea675a2-9d0e-41fd-a3b3-e4970d90cf5c",
+      "name": "End of Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const MAX_LINE_LEN = 600;\nconst shaped = items.map(i => {\n  const r = i.json;\n  const line = `[${r.Created}] (${r.channel || 'app'}) ${r.author || 'user'}: ${r.text || ''}`.slice(0, MAX_LINE_LEN);\n  return { json: { id: r.id, line } };\n});\nreturn shaped;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        -48
+      ],
+      "id": "bd12f817-780d-4736-807b-b565064bf4ea",
+      "name": "Shape Logs"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"spiffy:latest\",\n  \"prompt\": \"Summarize the logs into ONE JSON object with keys {date,title,summary,tags,source_ids}. Output ONLY valid JSON. Return ONLY valid JSON. No prose, no code fences, no markdown. \\n\\nINPUT:\\n{{ $json.logs }}\",\n  \"options\": {\n    \"temperature\": 0.2\n  },\n  \"stream\": false\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1104,
+        -48
+      ],
+      "id": "6a03e8d3-c8cf-413a-807d-6ad285c3ce9c",
+      "name": "HTTP Request",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get raw text from Ollama or OpenAI\nlet raw = $json.response\n  ?? ($json.choices?.[0]?.message?.content)\n  ?? \"\";\n\n// Guard: nothing came back\nif (!raw || typeof raw !== 'string') {\n  throw new Error('AI returned no text to parse. Keys: ' + Object.keys($json).join(', '));\n}\n\n// Clean common junk\nraw = raw\n  .replace(/```json|```/g, '')        // strip code fences\n  .replace(/[“”]/g, '\"')               // curly -> straight double-quotes\n  .replace(/[‘’]/g, \"'\")               // curly -> straight single-quotes\n  .trim();\n\n// If the model added extra text, grab the first JSON object\nconst start = raw.indexOf('{');\nconst end   = raw.lastIndexOf('}');\nif (start !== -1 && end > start) {\n  raw = raw.slice(start, end + 1);\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch (e) {\n  throw new Error('Invalid JSON from AI: ' + raw.slice(0, 300));\n}\n\n// Minimal schema check\nfor (const k of ['date','title','summary']) {\n  if (!parsed[k]) throw new Error('Missing key: ' + k);\n}\n\n// Normalize arrays\nparsed.tags = Array.isArray(parsed.tags) ? parsed.tags : [];\nparsed.source_ids = Array.isArray(parsed.source_ids) ? parsed.source_ids : [];\n\nreturn [{ json: parsed }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        -48
+      ],
+      "id": "973c7e80-f92e-4cc7-91f5-47e1e11c35c9",
+      "name": "Parse JSON"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appTxK7lxuhWmaadj",
+          "mode": "list",
+          "cachedResultName": "Spiffy OS",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl5eoUZbRNiI2Gyw",
+          "mode": "list",
+          "cachedResultName": "Memory",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj/tbl5eoUZbRNiI2Gyw"
+        },
+        "filterByFormula": "=",
+        "options": {
+          "fields": [
+            "Tags",
+            "unique_key",
+            "ChatID",
+            "Importance",
+            "LastMentioned",
+            "Topic",
+            "Summary"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1728,
+        -48
+      ],
+      "id": "86b27c66-cb5a-4aa8-887c-0ea2b96658fe",
+      "name": "Upsert Memory",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "uAUHMzwbZX3qw9E6",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "158d3002-ddf6-4ffb-9c2e-cd81f414f199",
+              "leftValue": "={{ $json.unique_key }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1936,
+        -48
+      ],
+      "id": "ba46e77f-d7bf-400e-9137-1a076a851554",
+      "name": "Does the record exist?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appTxK7lxuhWmaadj",
+          "mode": "list",
+          "cachedResultName": "Spiffy OS",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl5eoUZbRNiI2Gyw",
+          "mode": "list",
+          "cachedResultName": "Memory",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj/tbl5eoUZbRNiI2Gyw"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "LastMentioned": "={{ $json.date }}",
+            "Topic": "={{ $json.title }}",
+            "ChatID": 0,
+            "Summary": "={{ $json.summary }}",
+            "unique_key": "={{ $json.unique_key }}",
+            "Tags": "={{ $json.tags }}"
+          },
+          "matchingColumns": [
+            "unique_key"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Topic",
+              "displayName": "Topic",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "LastMentioned",
+              "displayName": "LastMentioned",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Importance",
+              "displayName": "Importance",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Low",
+                  "value": "Low"
+                },
+                {
+                  "name": "Medium",
+                  "value": "Medium"
+                },
+                {
+                  "name": "High",
+                  "value": "High"
+                },
+                {
+                  "name": "=Medium",
+                  "value": "=Medium"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "ChatID",
+              "displayName": "ChatID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "unique_key",
+              "displayName": "unique_key",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Tags",
+              "displayName": "Tags",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "options": [],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2304,
+        -144
+      ],
+      "id": "bc475245-9353-435e-9860-e9c7e4081f36",
+      "name": "Update record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "uAUHMzwbZX3qw9E6",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appTxK7lxuhWmaadj",
+          "mode": "list",
+          "cachedResultName": "Spiffy OS",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl5eoUZbRNiI2Gyw",
+          "mode": "list",
+          "cachedResultName": "Memory",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj/tbl5eoUZbRNiI2Gyw"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "LastMentioned": "={{ $json.date }}",
+            "Topic": "={{ $json.title }}",
+            "Summary": "={{ $json.summary }}",
+            "Importance": "={{ $json.Importance }}",
+            "ChatID": 0,
+            "Tags": "={{ $json.tags }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Topic",
+              "displayName": "Topic",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "LastMentioned",
+              "displayName": "LastMentioned",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Importance",
+              "displayName": "Importance",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Low",
+                  "value": "Low"
+                },
+                {
+                  "name": "Medium",
+                  "value": "Medium"
+                },
+                {
+                  "name": "High",
+                  "value": "High"
+                },
+                {
+                  "name": "=Medium",
+                  "value": "=Medium"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "ChatID",
+              "displayName": "ChatID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "unique_key",
+              "displayName": "unique_key",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Tags",
+              "displayName": "Tags",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "options": [],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2304,
+        48
+      ],
+      "id": "dda8e861-5b03-4eef-9139-e24304d1c968",
+      "name": "Create a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "uAUHMzwbZX3qw9E6",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -192
+      ],
+      "id": "5d9a07e4-c07d-48f5-aa5c-c02f93024669",
+      "name": "When clicking ‘Execute workflow’",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const tz = 'America/Detroit';\n\n// helper to format as yyyy-LL-dd\nconst ymd = (d) => {\n  const f = new Intl.DateTimeFormat('en-CA', {\n    timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit'\n  });\n  // en-CA gives YYYY-MM-DD\n  return f.format(d);\n};\n\n// helper to make ISO with offset in that TZ\nconst isoInTz = (d) => {\n  const pad = n => String(n).padStart(2,'0');\n  const p = new Intl.DateTimeFormat('en-US', {\n    timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit',\n    hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false\n  }).formatToParts(d).reduce((o, part) => (o[part.type]=part.value, o), {});\n  // Build \"YYYY-MM-DDTHH:mm:ss\" then append offset via formatToParts trick\n  const yyyy = p.year, MM = p.month, DD = p.day;\n  const HH = p.hour, mm = p.minute, ss = p.second;\n  // Get numeric offset\n  const nowUTC = d.getTime();\n  const asLocal = Date.parse(`${yyyy}-${MM}-${DD}T${HH}:${mm}:${ss}Z`);\n  const offsetMin = Math.round((asLocal - nowUTC) / 60000);\n  const sign = offsetMin >= 0 ? '+' : '-';\n  const oh = pad(Math.floor(Math.abs(offsetMin)/60));\n  const om = pad(Math.abs(offsetMin)%60);\n  return `${yyyy}-${MM}-${DD}T${HH}:${mm}:${ss}${sign}${oh}:${om}`;\n};\n\nconst now = new Date();\n\n// Start of day in TZ\nconst start = new Date(now);\nstart.setHours(0,0,0,0);\n\n// End of day in TZ (23:59:59)\nconst end = new Date(now);\nend.setHours(23,59,59,0);\n\nreturn [\n  {\n    json: {\n      todayStart: isoInTz(start),\n      todayEnd: isoInTz(end),\n      todayYMD: ymd(now),\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        0
+      ],
+      "id": "16f84b6e-af69-4b40-89cf-e7a5a52888ed",
+      "name": "Date and Time"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "de6bfe84-17f6-42aa-8cfc-76aa3994c3e5",
+              "name": "date",
+              "value": "={{$json.LastMentioned}}",
+              "type": "string"
+            },
+            {
+              "id": "0bc7b841-7cd8-4500-9278-d01026eb21d5",
+              "name": "title",
+              "value": "={{ $json.Topic }}",
+              "type": "string"
+            },
+            {
+              "id": "bd65de7e-e5cc-437c-8211-c89166082b9a",
+              "name": "summary",
+              "value": "={{ $json.Summary }}",
+              "type": "string"
+            },
+            {
+              "id": "79c232f5-a4a0-4df8-8376-b4dd02f14db6",
+              "name": "unique key",
+              "value": "={{$json.date + \"-\" + $json.title}}",
+              "type": "string"
+            },
+            {
+              "id": "89c38119-02f0-49c5-8978-8e12636899d9",
+              "name": "tags",
+              "value": "={{ $('Tag Handler').item.json.tags }}",
+              "type": "array"
+            },
+            {
+              "id": "5823ae46-36fb-470d-ada9-1cc14396bb09",
+              "name": "source_ids",
+              "value": "={{$json.source_ids || []}}",
+              "type": "array"
+            },
+            {
+              "id": "eb422c70-dde6-4412-816a-2b947355f78b",
+              "name": "tags",
+              "value": "={{$json.Tags}}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2128,
+        48
+      ],
+      "id": "23bf16ae-21cc-4461-9c94-87855e8efdf4",
+      "name": "Memory Payload1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "de6bfe84-17f6-42aa-8cfc-76aa3994c3e5",
+              "name": "date",
+              "value": "={{$json.LastMentioned}}",
+              "type": "string"
+            },
+            {
+              "id": "0bc7b841-7cd8-4500-9278-d01026eb21d5",
+              "name": "title",
+              "value": "={{ $json.Topic }}",
+              "type": "string"
+            },
+            {
+              "id": "bd65de7e-e5cc-437c-8211-c89166082b9a",
+              "name": "summary",
+              "value": "={{ $json.Summary }}",
+              "type": "string"
+            },
+            {
+              "id": "79c232f5-a4a0-4df8-8376-b4dd02f14db6",
+              "name": "unique key",
+              "value": "={{$json.date + \"-\" + $json.title}}",
+              "type": "string"
+            },
+            {
+              "id": "89c38119-02f0-49c5-8978-8e12636899d9",
+              "name": "tags",
+              "value": "={{ $('Tag Handler').item.json.tags }}",
+              "type": "array"
+            },
+            {
+              "id": "5823ae46-36fb-470d-ada9-1cc14396bb09",
+              "name": "source_ids",
+              "value": "={{$json.source_ids || []}}",
+              "type": "array"
+            },
+            {
+              "id": "f5b7afe4-62db-4ac2-ab4a-39936510d1a5",
+              "name": "unique_key",
+              "value": "={{ $json.unique_key }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2112,
+        -144
+      ],
+      "id": "eb80f058-c2ab-4233-8b20-1f63e0abfe97",
+      "name": "Memory Payload"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Function node\nconst raw = $json.tags;\nlet tags = [];\n\nif (Array.isArray(raw)) {\n  tags = raw;\n} else if (typeof raw === 'string') {\n  tags = raw.split(',').map(s => s.trim()).filter(Boolean);\n}\n\nreturn {\n  json: {\n    ...$json,\n    tags: [...new Set(tags)], //dedupe\n  }\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        -48
+      ],
+      "id": "7522fd89-7c73-43d4-acf0-d1cfc67af9b9",
+      "name": "Tag Handler"
+    },
+    {
+      "parameters": {
+        "chatId": "8124847814",
+        "text": "=✅ <b>Record Saved Successfully</b>  <b>Topic:</b> {{ $json.fields.Topic }} <b>ID:</b> {{ $json.id }} <b>Last Mentioned:</b> {{ $json.fields.LastMentioned }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2528,
+        -80
+      ],
+      "id": "945c8a8a-a024-4447-91bc-05b7664d09a9",
+      "name": "Send a text message",
+      "webhookId": "8679c728-618e-4738-8a8d-9bd23d109d88",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZVzTrMIuVWfKbh71",
+          "name": "Spiffy-Telegram"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily at 11:30 PM": {
+      "main": [
+        [
+          {
+            "node": "Date and Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records": {
+      "main": [
+        [
+          {
+            "node": "Does the input array have >0 items?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Does the input array have >0 items?": {
+      "main": [
+        [
+          {
+            "node": "Shape Logs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "End of Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Logs": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "Tag Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Memory": {
+      "main": [
+        [
+          {
+            "node": "Does the record exist?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Does the record exist?": {
+      "main": [
+        [
+          {
+            "node": "Memory Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Memory Payload1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Date and Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date and Time": {
+      "main": [
+        [
+          {
+            "node": "Search records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory Payload1": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory Payload": {
+      "main": [
+        [
+          {
+            "node": "Update record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag Handler": {
+      "main": [
+        [
+          {
+            "node": "Upsert Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update record": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a record": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "975fcf85-b0dc-4060-80dd-5a700c6dbe79",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a7beee7e0880fab8ba471b4d47a0d809dab332ab21ca93b255aea19da323d2e6"
+  },
+  "id": "ZOHSErlUWomGaILT",
+  "tags": []
+}
