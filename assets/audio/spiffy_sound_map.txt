@@ -1,0 +1,59 @@
+Spiffy Sound Map (with Attribution)
+----------------------------------
+
+All sound files used in this project are derived from the purchased sound pack:
+"Robotic Lifeforms" by SoundMorph
+(https://soundmorph.com/products/robotic-lifeforms)
+Licensed and used under paid license.
+
+These sounds are proprietary and may not be redistributed. 
+This map is provided for reference only.
+
+----------------------------------
+Folder: /spiffy_sounds/core
+  startup_chirp.wav        <- Vocalizing A Wallo 01.wav
+  processing_blip.wav      <- Vocalizing A Wallo 02.wav
+  snide_chime.wav          <- Vocalizing A Wallo 03.wav
+  error_buzz.wav           <- Vocalizing A Wallo 04.wav
+
+Folder: /spiffy_sounds/movement
+  servo_tick.wav           <- Servo Motor Tiny Bot 04.wav
+  servo_tick_02.wav        <- Servo Motor Tiny Bot 05.wav
+  gyro_wobble.wav          <- Servo Motor Tiny Bot 06.wav
+  gyro_wobble_02.wav       <- Servo Motor Tiny Bot 07.wav
+  click_lock.wav           <- Servo Motor Tiny Bot 08.wav
+  click_lock_02.wav        <- Servo Motor Tiny Bot 09.wav
+  servo_tick_03.wav        <- Servo Motor Tiny Bot 10.wav
+  servo_tick_04.wav        <- Servo Motor Tiny Bot 11.wav
+  servo_tick_05.wav        <- Servo Motor Tiny Bot 12.wav
+  servo_tick_06.wav        <- Servo Motor Tiny Bot 13.wav
+
+Folder: /spiffy_sounds/personality
+  glitch_sputter_01.wav    <- Vocalizing A Wallo 16.wav
+  sarcastic_boops_01.wav   <- Vocalizing A Wallo 17.wav
+  sarcastic_boops_02.wav   <- Vocalizing A Wallo 18.wav
+  dry_confirm_01.wav       <- Vocalizing A Wallo 19.wav
+  flatline_beep_01.wav     <- Vocalizing A Wallo 20.wav
+  dry_confirm_02.wav       <- Vocalizing A Wallo 21.wav
+  dismissive_sweep_01.wav  <- Vocalizing A Wallo 22.wav
+  dismissive_sweep_02.wav  <- Vocalizing A Wallo 25.wav
+  dismissive_sweep_03.wav  <- Vocalizing A Wallo 07.wav
+  dry_confirm_03.wav       <- Vocalizing A Wallo 08.wav
+  flatline_beep_02.wav     <- Vocalizing A Wallo 09.wav
+
+Folder: /spiffy_sounds/alerts
+  system_ping.wav          <- Vocalizing A Wallo 05.wav
+  mock_alarm_01.wav        <- Vocalizing A Wallo 23.wav
+  mock_alarm_02.wav        <- Vocalizing A Wallo 24.wav
+  mock_alarm_03.wav        <- Vocalizing A Wallo 06.wav
+  shutdown_click.wav       <- Vocalizing A Wallo 10.wav
+
+Folder: /spiffy_sounds/ambient
+  glitch_crackle.wav       <- Electricity Static 03.wav
+  diagnostic_sweep.wav     <- Wooshes Transform Sweetener 46.wav
+  low_hum_loop.wav         <- noisy-computer-hum-34737.mp3 (converted to WAV)
+
+----------------------------------
+Notes:
+- Attribution required when referencing or distributing Spiffy’s sound system setup.
+- Do NOT redistribute raw files. They remain the property of SoundMorph.
