@@ -1,0 +1,315 @@
+{
+  "name": "Daily Digest Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Outputs: { date_text, time_12h }\nconst now = new Date();\nconst et = new Date(now.toLocaleString('en-US', { timeZone: 'America/Detroit' }));\nconst pad = n => String(n).padStart(2,'0');\nconst ampm = et.getHours() >= 12 ? 'PM' : 'AM';\nconst hour12 = et.getHours() % 12 || 12;\nconst time_12h = `${hour12}:${pad(et.getMinutes())} ${ampm}`;\nconst date_text = et.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });\nreturn [{ json: { date_text, time_12h } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1952,
+        -32
+      ],
+      "name": "Get ET Date/Time",
+      "id": "3280fe7b-af66-4a5f-a9cf-ab14635d03f0"
+    },
+    {
+      "parameters": {
+        "url": "https://wttr.in/48317?format=j1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -1728,
+        -32
+      ],
+      "name": "Fetch Weather (HTTP)",
+      "id": "b4fe97fc-6224-4cf6-9ec0-002bb5120a7f",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input: wttr.in JSON -> { weather }\nconst j = $json;\ntry {\n  const cur = (j.current_condition||[])[0] || {};\n  const today = (j.weather||[])[0] || {};\n  const high_f = Number(today.maxtempF);\n  const low_f  = Number(today.mintempF);\n  const wind_mph = Number(cur.windspeedMiles);\n  const summary = (cur.weatherDesc?.[0]?.value || '').trim() || 'Unavailable';\n  return [{ json: { weather: { summary, high_f, low_f, wind_mph } } }];\n} catch (e) {\n  return [{ json: { weather: null } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1504,
+        -32
+      ],
+      "name": "Parse Weather",
+      "id": "39e1394f-62c5-46a6-96ab-2bc587854bbb"
+    },
+    {
+      "parameters": {
+        "model": "spiffy:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        192
+      ],
+      "name": "Ollama Chat Model",
+      "id": "a7d1dce4-da34-4a0c-bc1b-be38251a3c88",
+      "credentials": {
+        "ollamaApi": {
+          "id": "SHdYALxwpWnSUAyf",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Output ONLY this JSON and nothing else:\n{\n  \"opening_line\": \"short robotic morning greeting\",\n  \"closing_line\": \"short witty robotic sign-off\"\n}\nContext: This is a MORNING daily digest delivered around 07:00 ET.\nConstraints: Do NOT mention “tomorrow”, “tonight”, or future-day sign-offs. Keep present-tense, morning vibe.\nTone: witty, snarky-but-kind, very robot-like. Keep each line under 120 characters.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -832,
+        -32
+      ],
+      "name": "AI Agent (Open/Close Only)",
+      "id": "ba6ea3a4-7e87-4614-b79f-f10126084894"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize Agent JSON output -> { opening_line, closing_line }\nlet raw = $json.output ?? $json.text ?? $json.content ?? $json;\nif (typeof raw !== 'string') raw = JSON.stringify(raw);\n\nlet opening_line = 'Systems online.';\nlet closing_line = 'Diagnostics complete.';\n\ntry {\n  const j = JSON.parse(raw);\n  if (j.opening_line) opening_line = String(j.opening_line);\n  if (j.closing_line) closing_line = String(j.closing_line);\n} catch {}\n\n// Morning-safe sanitizer\nfunction morningSafe(s) {\n  if (!s) return s;\n  // Replace future-ish sign-offs and normalize to a morning vibe\n  s = s.replace(/\\b(tomorrow|tonight|this evening)\\b/gi, 'today');\n  // Nudge endings toward neutral present-tense\n  s = s.replace(/\\b(have a great tomorrow)\\b/gi, 'systems nominal—proceed with today');\n  return s;\n}\n\nopening_line = morningSafe(opening_line);\nclosing_line = morningSafe(closing_line);\n\nreturn [{ json: { opening_line, closing_line } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        -32
+      ],
+      "name": "Parse Agent JSON",
+      "id": "695a9198-23e3-4cdd-a3ca-cb05a51233bb"
+    },
+    {
+      "parameters": {
+        "jsCode": "const open = $item(0).$node['Parse Agent JSON']?.json?.opening_line || 'Systems online.';\nconst close = $item(0).$node['Parse Agent JSON']?.json?.closing_line || 'Diagnostics complete.';\n\nconst dt   = $item(0).$node['Get ET Date/Time']?.json || {};\nconst wx   = $item(0).$node['Parse Weather']?.json?.weather || null;\nconst news = $item(0).$node['Parse RSS Items']?.json?.news || [];\n\nfunction weatherLine(w){\n  if (!w) return 'Weather data unavailable.';\n  const parts = [];\n  if (w.summary) parts.push(w.summary);\n  if (Number.isFinite(w.high_f) && Number.isFinite(w.low_f)) {\n    parts.push(`high ${Math.round(w.high_f)}°F / low ${Math.round(w.low_f)}°F`);\n  }\n  if (Number.isFinite(w.wind_mph)) parts.push(`wind ${Math.round(w.wind_mph)} mph`);\n  return parts.join(', ');\n}\n\nconst out = [];\nout.push(`**${open}**`);\nif (dt.date_text && dt.time_12h) out.push(`📅 ${dt.date_text}, ${dt.time_12h}`);\nout.push(`🌤️ ${weatherLine(wx)}`);\n\nif (news.length) {\n  out.push(`📰 Top Headlines:`);\n  news.forEach(n => {\n    out.push(`• *${n.title}* — ${n.source}\\n  ${n.summary}`);\n  });\n}\n\nout.push(`**${close}**`);\nreturn [{ json: { content: out.join('\\n\\n') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        -32
+      ],
+      "name": "Combine Digest",
+      "id": "0f22e515-eecd-4b61-a6f0-b0d4b80b165c"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "1418043501664276492",
+          "mode": "list",
+          "cachedResultName": "Spiffy's Server!",
+          "cachedResultUrl": "https://discord.com/channels/1418043501664276492"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1418043505129033774",
+          "mode": "list",
+          "cachedResultName": "general",
+          "cachedResultUrl": "https://discord.com/channels/1418043501664276492/1418043505129033774"
+        },
+        "content": "={{ $json.content }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        -32
+      ],
+      "id": "f8b6c40f-0766-4699-9d9a-ec2cc573c7d4",
+      "name": "Send a message",
+      "webhookId": "b1ba2c4d-c328-45dc-8245-3320aa5bbf8f",
+      "credentials": {
+        "discordBotApi": {
+          "id": "VW0aExqTjKzGYZIP",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://feeds.feedburner.com/ign/news",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -1280,
+        -32
+      ],
+      "id": "660486f0-5702-4ff1-b770-1a361dad2182",
+      "name": "RSS Read"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge BOTH feeds into one { news: [...] } and emit ONE item.\n// Reads by node name so it doesn't matter which branch triggered this node.\n\nconst ignItems = $items('RSS Read', 0, 0) || [];   // IGN / tech feed\n\n// Fallback: if both came back empty for some reason, also check the incoming edge\nconst fallback = (ignItems.length || usItems.length) ? [] : ($input.all() || []);\n\nconst decode = s => String(s || '').replace(/\\s+/g,' ').trim();\nconst host   = u => { try { return new URL(u).hostname.replace(/^www\\./,''); } catch { return 'Unknown'; } };\nconst ts     = v => { const d = new Date(v || 0); return isNaN(d) ? 0 : d.getTime(); };\n\nfunction norm(arr){\n  return arr.map(i => {\n    const j = i.json || {};\n    const title = decode(j.title);\n    const link  = j.link || '';\n    const source = decode((j.source && (j.source.title || j.source)) || j.creator || host(link) || 'Unknown');\n    const summaryRaw = j.contentSnippet || j.description || j.content || '';\n    const summary = decode(summaryRaw);\n    const pub = ts(j.isoDate || j.pubDate || j.published || j.date);\n    return { title, source, summary, pubDate: pub };\n  }).filter(r => r.title);\n}\n\nlet rows = [...norm(ignItems), ...norm(fallback)];\n\n// Prefer last 48h, then newest 3\nconst now   = Date.now();\nconst fresh = rows.filter(r => now - r.pubDate <= 48*60*60*1000);\nconst pick  = (fresh.length ? fresh : rows).sort((a,b) => b.pubDate - a.pubDate).slice(0, 3);\n\n// Trim summaries\nconst news = pick.map(n => ({\n  title: n.title,\n  source: n.source || 'Unknown',\n  summary: n.summary ? (n.summary.length > 220 ? n.summary.slice(0,217).trimEnd() + '…' : n.summary)\n                     : 'No summary available.'\n}));\n\nreturn [{ json: { news } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1056,
+        -32
+      ],
+      "id": "e46a8687-38cf-4e99-be22-3d6384b503f4",
+      "name": "Parse RSS Items"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2176,
+        -32
+      ],
+      "id": "e4dba31e-f7af-4537-96b4-9f6fee4e2834",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get ET Date/Time": {
+      "main": [
+        [
+          {
+            "node": "Fetch Weather (HTTP)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Weather (HTTP)": {
+      "main": [
+        [
+          {
+            "node": "Parse Weather",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Weather": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (Open/Close Only)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (Open/Close Only)": {
+      "main": [
+        [
+          {
+            "node": "Parse Agent JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Agent JSON": {
+      "main": [
+        [
+          {
+            "node": "Combine Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Digest": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Parse RSS Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse RSS Items": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (Open/Close Only)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get ET Date/Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "xndOgqqFx6JhYAdJ"
+  },
+  "versionId": "69cc8c9f-36d7-46e8-abd2-cda50580a2eb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6e6b35e9cef06fd0c1b7134be8a1c44cca89dc4c407c6493c4673da07fd65766"
+  },
+  "id": "6hmyDsScYleK3F5C",
+  "tags": []
+}
