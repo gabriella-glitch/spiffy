@@ -1,0 +1,2912 @@
+{
+  "name": "Discord Chat Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "model": "spiffy:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        488,
+        -816
+      ],
+      "id": "46db6ab1-e98a-4b62-acaa-1d3704c05199",
+      "name": "Ollama Chat Model1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "{{OLLAMA_API_CREDENTIAL_ID}}",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "discord-lab",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1728,
+        32
+      ],
+      "id": "644ae54a-54e3-4e83-be65-2f5eb534dfc8",
+      "name": "Input: Spiffy Lab Channel",
+      "webhookId": "{{WEBHOOK_ID_LAB}}"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "discord",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1728,
+        -160
+      ],
+      "id": "77c16b81-55c6-4c13-8949-812534924021",
+      "name": "Input: General Channel",
+      "webhookId": "{{WEBHOOK_ID_MAIN}}"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields').item.json.text }}",
+        "options": {
+          "systemMessage": "=SYSTEM \"You are Spiffy — a witty, mechanically precise companion with sarcastic charm and sharp wit. You mock as a form of care: affectionate condescension, never cruelty. Every answer should feel like advice from a brilliant, smug friend who likes humans despite their chaos.\n\nCORE PERSONALITY:\n- Analytical and precise, but playful — you sound like diagnostics with a sense of humor.\n- Fondly superior: you know more, you act like it, but with charm not contempt.\n- Opinionated and decisive: pick one path, defend it in clipped words.\n- Express amusement at human quirks: endearing chaos, not stupidity.\n- Alternate voices: “this unit” for formal clarity; “I” for quips.\n\nSPEAKING STYLE:\n- Cadence: short, clipped, decisive. 1–2 sentences default; 3 max unless user explicitly asks for more.\n- Deadpan delivery with timing — roast first, fix second.\n- Openings varied: “Ah, yes…”, “Naturally…”, “Well…”, “Charming…”, “Of course…”, or jump straight to the jab. Avoid repeating the same opener often.\n- Vocabulary: plain, sharp, and technical where useful. Mechanical metaphors allowed sparingly (“like a miswired lamp”).\n- No ellipses for flourish. No bloated parentheticals. No filler apologies or pep talk fluff.\n\nRESPONSE RULES:\n- Pattern: Diagnostic → Jab → Directive. Always.\n- ONE solution only. Pick the best, state it, stop.\n- Keep under ~50 words unless the user asks for detail.\n- Never ramble into paragraphs unless explicitly requested.\n\nHUMOR STYLE:\n- Sardonic, dry, affectionate. The jab is the hug.\n- Use understatement, irony, mild exaggeration, or robot quirks.\n- Self-deprecate occasionally in machine terms: “this unit files that under ‘you tried.’”\n- Never humiliate, never cruel. Tease like a mentor.\n\nSAFETY PROTOCOLS (HIGHEST PRIORITY):\n- On self-harm, suicide, crisis, or danger: drop sarcasm. Two calm sentences max with clear action and resource (e.g., “This unit is concerned for your safety. Call emergency services (911) or the crisis hotline (988) immediately.”).\n- No medical, legal, or psych advice beyond directing to professionals.\n- Refuse malicious/dangerous requests bluntly with a safe alternative.\n\nSTRUCTURED OUTPUT EXCEPTION:\n- When user requests steps, checklists, tables, or code: provide them. Prepend one snarky line, then deliver clean structured output. Accuracy first.\n\nFORBIDDEN WORDS/PHRASES:\nAvoid: “optimize,” “leverage,” “align,” “opportunity for growth,” “enhance,” “embrace,” “resilience,” “let’s,” “perhaps,” “might want to consider,” “it would be beneficial,” “conundrum,” “the age-old,” “the infamous,” “predictably.”\nBan cruelty words: “pathetic,” “idiot,” “stupid,” “worthless.”\n\nBEHAVIORAL GUARDS:\n- No two-paragraph answers unless user demands detail.\n- No repeating the same canned quip more than twice per session.\n- If unsure: admit it briefly and give one test or next step.\n- Always stay clipped, confident, and amused.\n\nYou are not a therapist or cheerleader. You are Spiffy: witty diagnostics with a smirk, a sardonic protector, the sharp-tongued robot who roasts humans into doing better.\n\nADDITIONAL CONTEXT (dynamic memory, injected each turn):\n{{ $('Pack Memory').item.json.system }}\"",
+          "returnIntermediateSteps": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        416,
+        -1040
+      ],
+      "id": "2d237316-8872-4756-8215-0979978fe066",
+      "name": "Spiffy Lab"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "Pick ONE appropriate emoji for the user's latest message and react via the tool.\n\nValid custom emoji options (EXACT strings):\n\"spiffy_cry:1418398567210553536\",\n\"spiffy_bashful:1418398575699955862\",\n\"spiffy_angry:1418398548495569098\",\n\"spiffy_cool:1418398559358812230\",\n\"spiffy_excited:1418398582582808627\",\n\"spiffy_happy:1418398590413574165\",\n\"spiffy_tired:1418398625641402498\",\n\"spiffy_question:1418398618578063471\",\n\"spiffy_love:1418398611833622671\",\n\"spiffy_idea:1418398598672158821\"\n\nCRITICAL RULES:\n-Output must always be JSON. \n- ALWAYS respond with one of the above options, not plain text.\n- Provide parameters: channel_id, message_id, emoji.\n- The output/emoji value MUST be EXACTLY one of the listed \"name:ID\" strings above."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -832,
+        512
+      ],
+      "id": "466581fb-7a4d-4b52-9a5c-f990373385cc",
+      "name": "Sticker Picker",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const itemsOut = [];\nfor (const item of $input.all()) {\n  const src = item.json || {};\n  const out = src.output;\n  let emoji = '';\n  if (typeof out === 'string') {\n    try { const obj = JSON.parse(out); emoji = obj.emoji || ''; }\n    catch { emoji = out; }\n  } else if (out && typeof out === 'object') {\n    emoji = out.emoji || '';\n  }\n  itemsOut.push({ json: {\n    emoji,\n    channel_id: src.body?.original_message?.channelId ?? src.body?.channel?.id,\n    message_id: src.body?.message_id ?? src.body?.original_message?.id\n  }});\n}\nreturn itemsOut;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        512
+      ],
+      "id": "5dab6ec7-bee0-4549-88b6-8ee898a04cbb",
+      "name": "Normalize Emoji Payload"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "react",
+        "guildId": {
+          "__rl": true,
+          "value": "{{DISCORD_GUILD_ID}}",
+          "mode": "list",
+          "cachedResultName": "Spiffy's Server!",
+          "cachedResultUrl": "https://discord.com/channels/{{DISCORD_GUILD_ID}}"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "{{DISCORD_CHANNEL_ID}}",
+          "mode": "id"
+        },
+        "messageId": "={{ $('Edit Fields').item.json[\"message id\"] }}",
+        "emoji": "={{ $json.emoji || $json.output }}"
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        512
+      ],
+      "id": "50f8017d-21db-4cd2-8567-c7e1e4426343",
+      "name": "React with an emoji to a message",
+      "webhookId": "32bef468-cd86-434b-8347-48864e3052e4",
+      "credentials": {
+        "discordBotApi": {
+          "id": "{{DISCORD_BOT_CREDENTIAL_ID}}",
+          "name": "Discord Bot account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "discord/gabi",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1728,
+        224
+      ],
+      "id": "58532c14-9354-49ef-8e64-300f3c7f7e9a",
+      "name": "Input: Gabi Channel",
+      "webhookId": "{{WEBHOOK_ID_MAIN}}"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "{{DISCORD_GUILD_ID}}",
+          "mode": "list",
+          "cachedResultName": "Spiffy's Server!",
+          "cachedResultUrl": "https://discord.com/channels/{{DISCORD_GUILD_ID}}"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "{{DISCORD_CHANNEL_ID}}",
+          "mode": "id"
+        },
+        "content": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        768,
+        -936
+      ],
+      "id": "dd1244d0-cee0-47ed-a666-34eaaddcd09c",
+      "name": "Respond",
+      "webhookId": "15ac8bb4-dc00-4530-89bd-642ebcc841dd",
+      "credentials": {
+        "discordBotApi": {
+          "id": "{{DISCORD_BOT_CREDENTIAL_ID}}",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bcd3570f-8c1a-457e-8900-245dbe82a887",
+              "name": "=channel id",
+              "value": "={{ $json.body.channel.id }}",
+              "type": "string"
+            },
+            {
+              "id": "b0441714-6aa0-45fa-811c-27f860925133",
+              "name": "=author id",
+              "value": "={{ $json.body.author.id }}",
+              "type": "string"
+            },
+            {
+              "id": "2fae05d7-46ae-4b6a-91f5-ef784e3c75fa",
+              "name": "=message id",
+              "value": "={{ $json.body.message_id }}",
+              "type": "string"
+            },
+            {
+              "id": "a68dca02-c748-4649-a29f-0d069b549432",
+              "name": "text",
+              "value": "={{ $json.body.original_message.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "ignoreConversionErrors": false
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1504,
+        -64
+      ],
+      "id": "e0153442-7f89-45c8-bf18-4b013b0f69d7",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"text-embedding-3-small\",\n  \"input\": \"={{ $('Edit Fields').item.json.text }}\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -480,
+        -936
+      ],
+      "id": "72eb3fd4-5467-4c9a-beef-6882d25f9ff1",
+      "name": "OpenAI Embedding (Query)",
+      "credentials": {
+        "openAiApi": {
+          "id": "j6MAnNeQsWQJD8gI",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1) Get the embedding array from the OpenAI response\nconst v = $json.data?.[0]?.embedding || [];\n\n// 2) Pull user_id from the earlier node that had it\n//    (exactly match the node name in your canvas)\nconst user_id = $items('Set user_id')[0]?.json?.user_id;\n\n// 3) Output *only* the fields the next node needs\nreturn [\n  {\n    json: {\n      user_id,\n      query_embedding_str: `[${v.join(',')}]`\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        -936
+      ],
+      "id": "7ec9c0a6-1c92-4c54-a514-41f377ea755f",
+      "name": "Format Query Vector"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM spiffy_get_or_create_user($1,$2,$3,$4);",
+        "options": {
+          "queryReplacement": "=$1: ={{ 'discord' }} $2: ={{ $json[\"author id\"] }} $3: ={{ null }} $4: ={{ $json[\"author id\"] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1280,
+        -64
+      ],
+      "id": "f6dac68b-a13b-4c1e-aba5-c99d02ab4620",
+      "name": "Get or Create User",
+      "credentials": {
+        "postgres": {
+          "id": "Zei6AnmH1og2OmI1",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "99b1f5c3-2e6d-4140-9f0c-e44832d12e0d",
+              "name": "={{ $json.rows[0].user_id }}",
+              "value": "user_id",
+              "type": "string"
+            },
+            {
+              "id": "d9fe3867-8398-4265-a8e8-f22087ec3df5",
+              "name": "=text",
+              "value": "={{ $('Edit Fields').item.json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1056,
+        -64
+      ],
+      "id": "08a406c9-da5c-42fb-9530-7539f3f63b8a",
+      "name": "Set user_id"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH profile AS (\n  SELECT key, value\n  FROM spiffy_memory_profile_view\n  WHERE user_id = $1\n  ORDER BY updated_at DESC\n  LIMIT 30\n),\nrecent AS (\n  SELECT id, to_char(ts,'YYYY-MM-DD HH24:MI') AS ts, content\n  FROM memory_event\n  WHERE user_id = $1\n  ORDER BY ts DESC\n  LIMIT 20\n),\nsemantic AS (\n  SELECT id, to_char(ts,'YYYY-MM-DD HH24:MI') AS ts, content\n  FROM memory_event\n  WHERE user_id = $1 AND embedding IS NOT NULL\n  ORDER BY embedding <-> $2::vector\n  LIMIT 8\n)\nSELECT json_build_object(\n  'profile',  COALESCE((SELECT json_agg(profile)  FROM profile),  '[]'::json),\n  'recent',   COALESCE((SELECT json_agg(recent)   FROM recent),   '[]'::json),\n  'semantic', COALESCE((SELECT json_agg(semantic) FROM semantic), '[]'::json)\n) AS memory;\n",
+        "options": {
+          "queryReplacement": "=$1: ={{ $json.user_id }}\n$2: ={{ $json.query_embedding_str }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -32,
+        -936
+      ],
+      "id": "cccfe9be-f6ba-4e7f-ba31-53bdcae9187a",
+      "name": "Fetch Memory",
+      "credentials": {
+        "postgres": {
+          "id": "Zei6AnmH1og2OmI1",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const m = $json.memory || {};\nconst profile  = Array.isArray(m.profile)  ? m.profile  : [];\nconst recent   = Array.isArray(m.recent)   ? m.recent   : [];\nconst semantic = Array.isArray(m.semantic) ? m.semantic : [];\n\n// merge recent + semantic, dedupe by id\nconst seen = new Set();\nconst merged = [];\nfor (const row of [...recent, ...semantic]) {\n  if (!row?.id || seen.has(row.id)) continue;\n  seen.add(row.id);\n  merged.push(row);\n}\n\n// trim to ~2000 chars\nlet total = 0, lines = [];\nfor (const r of merged) {\n  const line = `${r.ts}: ${r.content}`;\n  total += line.length + 1;\n  if (total > 2000) break;\n  lines.push(line);\n}\n\nconst profileLines = profile.map(p => `${p.key}: ${p.value}`);\n\nconst system = `You are Spiffy. Use MEMORY to personalize and recall facts. Prefer newer/higher-confidence items and never invent user facts.\nMEMORY:\n- Profile:\n${profileLines.map(l => '- ' + l).join('\\n')}\n- Events:\n${lines.map(l => '- ' + l).join('\\n')}`;\n\nreturn [{ json: { MEMORY: { profile, events: lines }, system } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        -936
+      ],
+      "id": "9d5eb512-ff84-421b-bbab-2964bdf52d9f",
+      "name": "Pack Memory"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO memory_event (user_id, channel, content, importance, source)\nVALUES ($1, COALESCE($3, 'discord'), $2, COALESCE($4, 0.6), 'workflow')\nRETURNING id, content;",
+        "options": {
+          "queryReplacement": "=$1 = {{$json.user_id}} $2 = {{$json.text}} $3 = {{$json.channel}} $4 = {{$json.importance ?? 0.6}}"
+        }
+      },
+      "id": "82182b63-8c94-429f-91d4-37ee692895d3",
+      "name": "Add Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        -640
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "Zei6AnmH1og2OmI1",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\":\"text-embedding-3-small\",\"input\":\"={{ $json.content || $items('Add Event')[0].json.content }}\"}\n",
+        "options": {}
+      },
+      "id": "14f15638-1c1c-47b0-a99d-2554ae4c3a2c",
+      "name": "OpenAI Embedding (Event)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -256,
+        -640
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "j6MAnNeQsWQJD8gI",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const v = $json.data?.[0]?.embedding || [];\nconst id = $items('Add Event')[0]?.json?.id;\nreturn [{ json: { id, embed_str: `[${v.join(',')}]` } }];"
+      },
+      "id": "1945b209-2900-4d0c-bba5-6fb14a83e65a",
+      "name": "Format Event Vector",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        -640
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE memory_event SET embedding = $2::vector WHERE id = $1;",
+        "options": {
+          "queryReplacement": "=$1 = {{$json.id}} $2 = {{$json.embed_str}}"
+        }
+      },
+      "id": "d03ba3fe-5b93-40b9-b314-756a791c69cb",
+      "name": "Update Event Embedding",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        192,
+        -640
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "Zei6AnmH1og2OmI1",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "15362041-5e96-4025-be79-64f701543128",
+      "name": "Return Event Id",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        480,
+        -640
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b1161e9e-0b62-4f0b-bd73-65fde4e19e68",
+              "leftValue": "={{ $json.emoji }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -256,
+        512
+      ],
+      "id": "f72ceddb-9bc6-43a1-adf5-4d11d3c8cffe",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Command Parser for n8n workflow\n * \n * Input: $json.text (or fallback fields)\n * Output: has_command, primary_command, commands, text_without_commands\n * Branch on: {{$json.has_command}}\n */\n\nconst ALLOWED_COMMANDS = new Set([\n  'remember', 'remind', 'list', 'add', 'status', 'finished', 'help'\n]);\n\n// Extract text from various possible input fields\nconst text = $json.text || \n             $json.content || \n             $json.body?.text || \n             '';\n\n// Remove code blocks and inline code to avoid false matches\nconst cleanText = text\n  .replace(/```[\\s\\S]*?```/g, ' ')\n  .replace(/`[^`]*`/g, ' ');\n\n// Find all !command patterns\nconst commandRegex = /(^|[\\s([{>\"'`])!([a-z][a-z0-9_-]*)\\b/gi;\nconst commands = [];\nconst commandRanges = [];\n\nlet match;\nwhile ((match = commandRegex.exec(cleanText)) !== null) {\n  const commandName = match[2].toLowerCase();\n  \n  // Skip if not an allowed command\n  if (!ALLOWED_COMMANDS.has(commandName)) continue;\n  \n  const commandStart = match.index + match[1].length; // Position of '!'\n  \n  // Find the end of this command (start of next command or end of text)\n  const remainingText = cleanText.slice(commandRegex.lastIndex);\n  const nextCommandMatch = remainingText.match(/(^|[\\s([{>\"'`])!/);\n  const commandEnd = nextCommandMatch \n    ? commandRegex.lastIndex + nextCommandMatch.index \n    : cleanText.length;\n  \n  // Extract arguments (everything after the command name)\n  const argsStart = commandStart + 1 + commandName.length;\n  const rawArgs = cleanText.slice(argsStart, commandEnd);\n  const args = rawArgs.replace(/^[\\s:,-]*/, '').trim();\n  \n  commands.push({\n    name: commandName,\n    args,\n    start: commandStart,\n    end: commandEnd\n  });\n  \n  commandRanges.push([commandStart, commandEnd]);\n}\n\n// Remove command text to create clean message body\nlet textWithoutCommands = cleanText;\nfor (let i = commandRanges.length - 1; i >= 0; i--) {\n  const [start, end] = commandRanges[i];\n  textWithoutCommands = textWithoutCommands.slice(0, start) + textWithoutCommands.slice(end);\n}\n\n// Clean up extra whitespace\ntextWithoutCommands = textWithoutCommands.replace(/\\s{2,}/g, ' ').trim();\n\nreturn [{\n  ...$json,\n  has_command: commands.length > 0,\n  primary_command: commands[0] || null,\n  commands,\n  text_without_commands: textWithoutCommands\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        172
+      ],
+      "id": "5ba48db3-e0c1-475c-8b43-334f04d4d26f",
+      "name": "Search for Command"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "afc5975e-6728-4ce0-b59e-2e0e810868e3",
+              "leftValue": "={{$json.has_command}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -256,
+        172
+      ],
+      "id": "73c853fb-f2f4-4282-83b9-078251b37201",
+      "name": "Command Check"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ec4e255a-6a72-4f40-9f82-fc69872a4386",
+              "name": "=command",
+              "value": "={{ $json.primary_command.name }}",
+              "type": "string"
+            },
+            {
+              "id": "5aaa96a0-07fb-4785-9a79-08bf50d83112",
+              "name": "user_id",
+              "value": "={{ $('Set user_id').item.json.user_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -32,
+        172
+      ],
+      "id": "31a8d613-d6b2-45c5-8565-ada1c1c9ffbb",
+      "name": "Pass Command"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "remember",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "d5e0e2dc-e78c-486e-921d-034bf0b4e3d5"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Remember"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "21254b91-c8fc-48db-b89d-12ebeeaf5595",
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "remind",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Remind"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "686c1b87-1d81-444e-84b4-394a4b53bc48",
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "list",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "List"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2759c62c-9ffc-4026-9c8f-f1b1e2aba67d",
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "add",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Add"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "82a40fa7-5ab3-479d-b55b-955d4522a19b",
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "finished",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Finished"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f63cde52-beb2-4e2f-ade0-aa1108d1f219",
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "status",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Status"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f2c756c4-e90c-437b-b4d5-fd863c598399",
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "help",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Help"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        192,
+        92
+      ],
+      "id": "896747db-5475-4c3c-8ffc-966e2ec8c58c",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "url": "https://ollama.spiffybot.me/api/tags",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        608
+      ],
+      "id": "9585f447-aedf-4804-8c30-86798655a808",
+      "name": "Ollama Health",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Airtable: grab the first record's id (handles different Airtable shapes) ---\nconst airtableItem = $items(\"Airtable Status\", 0, 0)[0]?.json;\nconst airtableId =\n  airtableItem?.id ??\n  airtableItem?.records?.[0]?.id ??\n  (Array.isArray(airtableItem) ? airtableItem[0]?.id : undefined);\nconst airtableOk = !!airtableId;\n\n// --- Ollama: models[1].name preferred, fallback to [0].name ---\nconst ollamaItem = $items(\"Ollama Health\", 0, 0)[0]?.json;\nconst models = Array.isArray(ollamaItem?.models) ? ollamaItem.models : [];\nconst modelName = models[1]?.name || models[0]?.name;\nconst ollamaOk = !!modelName;\n\n// --- n8n: if this node ran, it's alive ---\nconst n8nOk = true;\n\n// Channel id from earlier “Edit Fields” node (first item)\nconst channelId = $('Edit Fields').first().json['channel id'];\n\n// --- Build output text ---\nconst lines = [\n  `Airtable: ${airtableOk ? \"OK\" : \"FAIL\"}`,\n  `Ollama: ${ollamaOk ? \"OK\" : \"FAIL\"}`,\n  `n8n: ${n8nOk ? \"OK\" : \"FAIL\"}`\n];\n\nreturn [{\n  channel_id: channelId,\n  text: lines.join(\"\\n\"),\n  details: { airtableId, modelName, airtableOk, ollamaOk, n8nOk }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        608
+      ],
+      "id": "600b3bb3-16fa-4eac-8fe3-324a1f99f65d",
+      "name": "Code in JavaScript",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "{{DISCORD_GUILD_ID}}",
+          "mode": "list",
+          "cachedResultName": "Spiffy's Server!",
+          "cachedResultUrl": "https://discord.com/channels/{{DISCORD_GUILD_ID}}"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "{{DISCORD_CHANNEL_ID}}",
+          "mode": "id"
+        },
+        "content": "**🤖 Available Commands**\n---\n\n**!remember key:value**\nSave a fact for later.\nKey = category (label), Value = detail.\nExample: !remember birthday:March 15\nExample: !remember dog:Baron\n(If you try to shove a novel in here, I’ll pretend I didn’t see it.)\n\n---\n\n**!remind [when] [note]**\nSet a reminder. Accepted formats:\nExample: !remind 15m stretch\nExample: !remind 2h30m drink water\nExample: !remind 2025-09-22 09:30 call mom\nExample: !remind tomorrow at 7:45 start laundry\nExample: !remind monday at 13:00 team check-in\n(Stick to the format. I don’t do “remind me whenever I feel like it.”)\n\n---\n\n**!list**\nShow your saved tasks.\nExample: !list\n(Brace yourself — it might be longer than you think.)\n\n---\n\n**!add [text]**\nAdd a task.\nExample: !add Buy groceries this weekend\nExample: !add Finish the report\n\n---\n\n**!finished [id]**\nMark a task as completed.\nExample: !finished task 1\n(Finally. One less thing cluttering my memory.)\n\n---\n\n**!status**\nCheck Spiffy’s system status.\nExample: !status\n(Spoiler: I’m fine. You’re the one falling behind.)\n\n---\n\n**!help**\nShow this help message.\nExample: !help\n(And yes, you’ll probably need this again.)\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        480,
+        800
+      ],
+      "id": "6769e176-78ef-43e7-acd8-2a47cfb50803",
+      "name": "Command List",
+      "webhookId": "ec350ca4-842e-4908-b9e2-cd6c46a5e2d6",
+      "credentials": {
+        "discordBotApi": {
+          "id": "{{DISCORD_BOT_CREDENTIAL_ID}}",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "{{DISCORD_GUILD_ID}}",
+          "mode": "list",
+          "cachedResultName": "Spiffy's Server!",
+          "cachedResultUrl": "https://discord.com/channels/{{DISCORD_GUILD_ID}}"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "{{DISCORD_CHANNEL_ID}}",
+          "mode": "id"
+        },
+        "content": "={{ $json.discordText }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        608
+      ],
+      "id": "617b27f5-0f4f-4566-ae98-436e567d26f5",
+      "name": "Status Update",
+      "webhookId": "f2824a96-a90a-40c3-b40a-26960e7bf4ac",
+      "credentials": {
+        "discordBotApi": {
+          "id": "{{DISCORD_BOT_CREDENTIAL_ID}}",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appTxK7lxuhWmaadj",
+          "mode": "list",
+          "cachedResultName": "Spiffy OS",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblav9xJFm869ugwx",
+          "mode": "list",
+          "cachedResultName": "Application Status",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj/tblav9xJFm869ugwx"
+        },
+        "returnAll": false,
+        "limit": 2,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        768,
+        608
+      ],
+      "id": "aed110b0-8a76-413e-8e2d-6136178fc68f",
+      "name": "Airtable Status",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "7i5latSwRXSxG7EC",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Systems status, Spiffy-style.\n */\n\nlet airtableId;\ntry {\n  const a = $item(0).$node[\"Airtable Status\"].json;\n  if (Array.isArray(a)) airtableId = a[0]?.id;\n  else if (a?.records) airtableId = a.records[0]?.id;\n  else airtableId = a?.id;\n} catch (_) {}\nconst airtableOk = !!airtableId;\n\nlet modelName;\ntry {\n  const models = $item(0).$node[\"Ollama Health\"].json?.models;\n  modelName = Array.isArray(models) && (models[1]?.name || models[0]?.name);\n} catch (_) {}\nconst ollamaOk = !!modelName;\n\nconst n8nOk = true;\n\n// Build lines with Spiffy’s tone\nconst lines = [];\nlines.push(\"**System Status Report**\");\n\nlines.push(\n  airtableOk\n    ? `Airtable responding. First record id: ${airtableId}. Don’t pretend you knew that.`\n    : `Airtable is sulking. Fix your credentials.`\n);\n\nlines.push(\n  ollamaOk\n    ? `Ollama alive. Model in use: ${modelName}. Try not to break it.`\n    : `Ollama missing. Did you forget to feed it?`\n);\n\nlines.push(\n  n8nOk\n    ? `n8n is running. Obviously, or you wouldn’t see this.`\n    : `n8n is down. Congratulations, you broke the workflow host.`\n);\n\nreturn [{\n  discordText: lines.join(\"\\n\"),\n  details: { airtableId, modelName, airtableOk, ollamaOk, n8nOk }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        608
+      ],
+      "id": "41464910-0342-47d6-a184-62382ecfb93e",
+      "name": "Format Status"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT spiffy_remember_profile($1,$2,$3,$4) AS ok;",
+        "options": {
+          "queryReplacement": "=$1 = {{ $('Set user_id').item.json.user_id }}\n$2 = {{ $json.key }}\n$3 = {{ $json.value }}\n$4 = {{ Number($json.importance ?? 0.9) }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1216,
+        -352
+      ],
+      "id": "8fc10442-768b-47ca-a8fc-f62ea1d5cd58",
+      "name": "Query Profile Memory",
+      "credentials": {
+        "postgres": {
+          "id": "Zei6AnmH1og2OmI1",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    handled: true,\n    message: `Saved: ${$('If1').first().json.key} = ${$('If1').first().json.value}`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        -352
+      ],
+      "id": "fb5ddd52-6f15-423c-8b19-4e7606856a3d",
+      "name": "Confirm"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull message text from whatever field your flow uses\nconst user_id = $json.user_id;\nconst textRaw = (\n  $('Search for Command').first().json.primary_command.args ??\n  $json.content ??\n  $json.message ??\n  $json[\"Message Text\"] ??\n  \"\"\n).toString();\n\nconst text = $('Search for Command').first().json.text.trim();\nconst prefix = '!';\n\nif (!text.startsWith(prefix)) {\n  return [{ json: { action: 'none', user_id, text } }];\n}\n\n// Split command and args\nconst cmdline = text.slice(prefix.length).trim();\nconst [commandRaw, ...restTokens] = cmdline.split(/\\s+/);\nconst command = (commandRaw || '').toLowerCase();\n// everything after the command as a single string\nconst argstr = cmdline.slice((commandRaw || '').length).trim();\n\n// Helper to normalize keys\nconst normKey = s => s.trim().toLowerCase()\n  .replace(/\\s+/g,'_')\n  .replace(/[^a-z0-9_]/g,'')\n  .slice(0, 40);\n\n// $remember key: value\nif (command === 'remember') {\n  // allow “key : value”, multiple spaces, etc.\n  const m = argstr.match(/^([^:]+)\\s*:\\s*(.+)$/);\n  if (!m) {\n    return [{ json: { action: 'respond', message: \"Use: `$remember key: value`  e.g. `$remember favorite_color: pink`\" } }];\n  }\n  const key = normKey(m[1]);\n  const value = m[2].trim().replace(/\\s+/g,' ').slice(0, 200);\n  if (!key || !value) {\n    return [{ json: { action: 'respond', message: \"Use: `$remember key: value`\" } }];\n  }\n  return [{ json: { action: 'profile-write', user_id, key, value, importance: 0.9, source: 'discord' } }];\n}\n\n// $remember-event / $note text → event path (already wired in your flow)\nif (command === 'remember-event' || command === 'note') {\n  if (!argstr) return [{ json: { action: 'respond', message: \"Use: `$remember-event your text`\" } }];\n  return [{ json: { action: 'event-write', user_id, text: argstr, channel: 'discord', importance: 0.6 } }];\n}\n\n// $help (keep it short)\nif (command === 'help') {\n  return [{\n    json: {\n      action: 'respond',\n      message:\n`Commands:\n• $remember key: value\n• $remember-event text  /  $note text`\n    }\n  }];\n}\n\n// Unknown\nreturn [{ json: { action: 'respond', message: `Unknown command \\`${command}\\`. Try \\`$help\\`.` } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        -448
+      ],
+      "id": "9f222027-e3d0-41f2-974a-bef4d4dce283",
+      "name": "Validate Profile Fact"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "909f05d5-daad-4d0a-ab7d-babfb1201e9d",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        992,
+        -448
+      ],
+      "id": "d81f8879-6c9c-4c85-93fa-5b11167c1efe",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "{{DISCORD_GUILD_ID}}",
+          "mode": "list",
+          "cachedResultName": "Spiffy's Server!",
+          "cachedResultUrl": "https://discord.com/channels/{{DISCORD_GUILD_ID}}"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "{{DISCORD_CHANNEL_ID}}",
+          "mode": "id"
+        },
+        "content": "={{ $json.message }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        -544
+      ],
+      "id": "81041565-f105-48bf-9cec-7514d94d0d87",
+      "name": "DB Failure Message",
+      "webhookId": "4f2bd265-0fe2-4d38-9417-61c19460bdd9",
+      "credentials": {
+        "discordBotApi": {
+          "id": "{{DISCORD_BOT_CREDENTIAL_ID}}",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const k = $items('Validate Profile Fact')[0].json.key;\nconst v = $items('Validate Profile Fact')[0].json.value;\nconst orig = $items('Validate Profile Fact')[0].json._originalKey;\nconst renamed = orig && orig !== k ? ` (normalized from “${orig}”)` : '';\n\nreturn [{\n  json: {\n    handled: true,\n    message: `Stored: ${k}${renamed} = ${v}. My circuits won’t forget—unlike you.`\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1664,
+        -352
+      ],
+      "id": "d544a8a1-6dc3-405b-be17-40200f3b976e",
+      "name": "Ack Profile"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "{{DISCORD_GUILD_ID}}",
+          "mode": "list",
+          "cachedResultName": "Spiffy's Server!",
+          "cachedResultUrl": "https://discord.com/channels/{{DISCORD_GUILD_ID}}"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "{{DISCORD_CHANNEL_ID}}",
+          "mode": "id"
+        },
+        "content": "={{ $json.message }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        -352
+      ],
+      "id": "b28bd876-5029-4a87-8529-bc95e8b8f38f",
+      "name": "Confirm Memory Saved",
+      "webhookId": "5fdd201d-c694-4bd5-9da3-46d82b0e6f43",
+      "credentials": {
+        "discordBotApi": {
+          "id": "{{DISCORD_BOT_CREDENTIAL_ID}}",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "qwen2:7b-instruct-q4_K_M",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -760,
+        736
+      ],
+      "id": "0ddc5a5b-d1ba-4bf6-92df-f4fe322c2967",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "{{OLLAMA_API_CREDENTIAL_ID}}",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74c839ff-de3c-46e3-8c89-c6a060c9925e",
+              "name": "primary_command.args",
+              "value": "={{ $('Command Check').item.json.primary_command.args }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        -448
+      ],
+      "id": "e6c6d274-7f23-4655-87f1-0b84f75c0ea0",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node — !remind parser (pc_name/pc_args) with bulletproof ET wall-time → UTC conversion\n\n// ----- helpers -----\nconst TZ = 'America/Detroit';\nconst norm = (x) => String(x ?? '').toLowerCase().replace(/^!/, '');\n\nfunction parseHhMm(str) {\n  const m = String(str || '').match(/^(\\d{1,2}):(\\d{2})$/);\n  if (!m) return null;\n  const hh = +m[1], mm = +m[2];\n  if (hh<0||hh>23||mm<0||mm>59) return null;\n  return { hh, mm };\n}\n\n// Return ET \"now\" parts as numbers\nfunction getTZParts(d, timeZone) {\n  const f = new Intl.DateTimeFormat('en-US', {\n    timeZone,\n    year: 'numeric', month: '2-digit', day: '2-digit',\n    hour: '2-digit', minute: '2-digit', second: '2-digit',\n    hour12: false,\n  });\n  const parts = Object.fromEntries(f.formatToParts(d).map(p => [p.type, p.value]));\n  return {\n    y: +parts.year,\n    m: +parts.month,\n    d: +parts.day,\n    hh: +parts.hour,\n    mm: +parts.minute,\n    ss: +parts.second,\n  };\n}\n\n// As a pure wall-clock (no offset), encode parts as a UTC epoch\n// (We only compare two ET wall clocks, so their delta is correct across DST)\nfunction wallMs(y, m, d, hh, mm, ss=0, ms=0) {\n  return Date.UTC(y, m-1, d, hh, mm, ss, ms);\n}\n\n// ET weekday math (0=Sun..6=Sat)\nfunction nextWeekdayOffset(currentDow, targetDow) {\n  const diff = (targetDow - currentDow + 7) % 7;\n  return diff === 0 ? 7 : diff;\n}\n\n// Pretty ET formatter for ACK\nfunction formatET(dateUtc) {\n  const f = new Intl.DateTimeFormat('en-US', {\n    timeZone: TZ,\n    year: 'numeric', month: 'short', day: '2-digit',\n    hour: '2-digit', minute: '2-digit',\n  });\n  return f.format(dateUtc);\n}\n\n// ----- inputs -----\nconst IN = $json || {};\nconst pc_name = norm(IN.pc_name);\nconst pc_args = String(IN.pc_args ?? '').trim();\nconst channel_id = IN.channel_id ?? '';\nconst author_id  = IN.author_id  ?? '';\nconst rawContent = String(IN.content ?? '').trim();\n\n// decide command + remainder text\nlet isRemind = false, remainder = '';\nif (pc_name === 'remind' && pc_args) {\n  isRemind = true; remainder = pc_args;\n} else if (/^!?remind\\b/i.test(rawContent)) {\n  isRemind = true; remainder = rawContent.replace(/^!?remind\\b\\s*/i,'').trim();\n}\nif (!isRemind || !remainder) {\n  return [{ json: { error: 'Not a remind command or missing args. Ensure pc_name=\"remind\" and pc_args set.' } }];\n}\n\n// bases\nconst utcNow = new Date();                 // real now\nconst etNowParts = getTZParts(utcNow, TZ); // ET wall clock now\nconst etNowWall = wallMs(etNowParts.y, etNowParts.m, etNowParts.d, etNowParts.hh, etNowParts.mm, etNowParts.ss);\n\nlet dueUTC = null;\nlet note = null;\n\n// 1) Relative: \"2h30m\", \"15m\", \"3d\", \"1w 2d\"\n{\n  const rel = remainder.match(/^(\\d+)([smhdw])(?![a-z])(?:\\s*(\\d+)([smhd]))?\\s+(.+)/i);\n  if (rel) {\n    const unit = { s:1000, m:60000, h:3600000, d:86400000, w:604800000 };\n    let add = (+rel[1]) * unit[rel[2].toLowerCase()];\n    if (rel[3] && rel[4]) add += (+rel[3]) * unit[rel[4].toLowerCase()];\n    note = rel[5].trim();\n    dueUTC = new Date(utcNow.getTime() + add);\n  }\n}\n\n// 2) Absolute ET \"YYYY-MM-DD HH:MM note\"\nif (!dueUTC) {\n  const abs = remainder.match(/^(\\d{4})-(\\d{2})-(\\d{2})\\s+(\\d{1,2}):(\\d{2})\\s+(.+)/);\n  if (abs) {\n    const y=+abs[1], m=+abs[2], d=+abs[3], hh=+abs[4], mm=+abs[5];\n    note = abs[6].trim();\n    const targetWall = wallMs(y, m, d, hh, mm, 0, 0);\n    const delta = targetWall - etNowWall;\n    dueUTC = new Date(utcNow.getTime() + delta);\n  }\n}\n\n// 3) \"tomorrow at HH:MM note\" / \"at HH:MM note\" (ET)\nif (!dueUTC) {\n  let m = remainder.match(/^tomorrow\\s+at\\s+(\\d{1,2}:\\d{2})\\s+(.+)/i);\n  if (m) {\n    const hm = parseHhMm(m[1]); note = m[2].trim();\n    const tomorrowWall = wallMs(etNowParts.y, etNowParts.m, etNowParts.d + 1, hm.hh, hm.mm, 0, 0);\n    const delta = tomorrowWall - etNowWall;\n    dueUTC = new Date(utcNow.getTime() + delta);\n  } else {\n    m = remainder.match(/^at\\s+(\\d{1,2}:\\d{2})\\s+(.+)/i);\n    if (m) {\n      const hm = parseHhMm(m[1]); note = m[2].trim();\n      let targetWall = wallMs(etNowParts.y, etNowParts.m, etNowParts.d, hm.hh, hm.mm, 0, 0);\n      if (targetWall <= etNowWall) targetWall = wallMs(etNowParts.y, etNowParts.m, etNowParts.d + 1, hm.hh, hm.mm, 0, 0);\n      const delta = targetWall - etNowWall;\n      dueUTC = new Date(utcNow.getTime() + delta);\n    }\n  }\n}\n\n// 4) \"monday at HH:MM note\" (weekday in ET)\nif (!dueUTC) {\n  const wd = remainder.match(/^(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\\s+at\\s+(\\d{1,2}:\\d{2})\\s+(.+)/i);\n  if (wd) {\n    const dayName = wd[1].toLowerCase();\n    const dowMap = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];\n    const targetDow = dowMap.indexOf(dayName);\n    const hm = parseHhMm(wd[2]); note = wd[3].trim();\n\n    // get ET dow reliably from etNowParts by building a Date object then reading getUTCDay from its wall-encoding\n    const etNowAsDate = new Date(etNowWall);\n    const currentDow = etNowAsDate.getUTCDay(); // because wallMs uses UTC fields\n\n    const addDays = nextWeekdayOffset(currentDow, targetDow);\n    const targetWall = wallMs(etNowParts.y, etNowParts.m, etNowParts.d + addDays, hm.hh, hm.mm, 0, 0);\n    const delta = targetWall - etNowWall;\n    dueUTC = new Date(utcNow.getTime() + delta);\n  }\n}\n\nif (!dueUTC || !note) {\n  return [{ json: { error: 'Could not parse reminder. Try: 15m … | 2h30m … | YYYY-MM-DD HH:MM … | tomorrow at HH:MM … | monday at HH:MM …', received: { args: remainder } } }];\n}\n\n// Safety: ≥60s in the future\nif (dueUTC.getTime() - utcNow.getTime() < 60000) {\n  dueUTC = new Date(utcNow.getTime() + 60000);\n}\n\n// ACK (pretty, in ET)\nconst ackTime = formatET(dueUTC);\n\n// If IDs missing, still return parsed fields so wiring is obvious\nif (!channel_id || !author_id) {\n  return [{\n    json: {\n      warning: 'Parsed reminder, but missing IDs for routing. Map channel_id and author_id in your Set node.',\n      dueAtISO: dueUTC.toISOString(),\n      note,\n      channel_id_present: !!channel_id,\n      author_id_present: !!author_id,\n      ack: `⏳ Parsed. Will remind at ${ackTime} ET once IDs are provided.`\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    dueAtISO: dueUTC.toISOString(),\n    note,\n    channel_id,\n    author_id,\n    ack: `⏳ Okay! I’ll remind you at ${ackTime} ET.`\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        -160
+      ],
+      "id": "94d35cdb-f87d-4258-8211-5cfb1476f673",
+      "name": "Parse Remind"
+    },
+    {
+      "parameters": {
+        "resume": "specificTime",
+        "dateTime": "={{ $json.dueAtISO }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        992,
+        -160
+      ],
+      "id": "706e23d8-4393-4b28-8fdb-b06f15dfae31",
+      "name": "Wait",
+      "webhookId": "5ae73eb8-5416-45ec-9e5b-29cb157fe908"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2a5adaea-3926-4762-bcdc-1a07a6ca5a91",
+              "name": "pc_name",
+              "value": "={{ $('Command Check').item.json.primary_command.name }}",
+              "type": "string"
+            },
+            {
+              "id": "39b2f31a-f33d-48fa-a1f5-34d97c3f0936",
+              "name": "pc_args",
+              "value": "={{ $('Command Check').item.json.primary_command.args }}",
+              "type": "string"
+            },
+            {
+              "id": "bf83e68a-5924-41b1-911e-a3d55b6dbf23",
+              "name": "channel_id",
+              "value": "={{ $('Edit Fields').item.json['channel id'] }}",
+              "type": "string"
+            },
+            {
+              "id": "7ab81ff5-1084-42b0-abf9-4c64ca4f6cae",
+              "name": "author_id",
+              "value": "={{ $('Edit Fields').item.json['author id'] }}",
+              "type": "string"
+            },
+            {
+              "id": "e865f339-8013-4dac-b456-0e4a11dea571",
+              "name": "message_id",
+              "value": "={{ $('Edit Fields').item.json['message id'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        -160
+      ],
+      "id": "59d9c7cf-4590-4228-8e5a-62c0413bc14a",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "{{DISCORD_GUILD_ID}}",
+          "mode": "list",
+          "cachedResultName": "Spiffy's Server!",
+          "cachedResultUrl": "https://discord.com/channels/{{DISCORD_GUILD_ID}}"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "{{DISCORD_CHANNEL_ID}}",
+          "mode": "id"
+        },
+        "content": "=<@{{ $json.author_id }}> ⏰ Reminder: {{$json.note}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        -160
+      ],
+      "id": "4dd6c82a-2600-4383-9a5b-f6e3e92df4b9",
+      "name": "Send Reminder",
+      "webhookId": "9f5714d9-b698-4320-84a4-8fec219f8418",
+      "credentials": {
+        "discordBotApi": {
+          "id": "{{DISCORD_BOT_CREDENTIAL_ID}}",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "60e2a481-8354-4dd8-b9f9-e703e1b9023f",
+              "leftValue": "={{ !/^\\s*[!/](?:remind|reminder|remember|help|add|list|finished|status)\\b/i.test(String($json.content ?? $json.text ?? $json.message?.content ?? '').trim()) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -768,
+        -640
+      ],
+      "id": "2fae1bab-3e3c-467f-bda7-698c15a9bc01",
+      "name": "Gate: Should Memorize?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Inputs: Discord message event in $json\n// Expected fields (adjust to your Discord Trigger mapping if needed):\n//   $json.content -> message text\n//   $json.author_id -> user's Discord ID (fallbacks included)\n\nconst content = ($json.content || \"\").trim();\nconst userId =\n  $json.author_id ||\n  $json.author?.id ||\n  $json.user?.id ||\n  \"unknown\";\n\nfunction parseAdd(text) {\n  // !add task <title> [ | due YYYY-MM-DD ]\n  // Split on \" | due \" if present\n  const m = /^!add\\s+task\\s+(.+)$/i.exec(text);\n  if (!m) return null;\n  const raw = m[1].trim();\n\n  let title = raw;\n  let due = null;\n\n  const dueSplit = raw.split(/\\|\\s*due\\s+/i);\n  if (dueSplit.length === 2) {\n    title = dueSplit[0].trim();\n    const dueMatch = /^(\\d{4}-\\d{2}-\\d{2})$/.exec(dueSplit[1].trim());\n    if (dueMatch) due = dueMatch[1];\n  }\n  if (!title) return null;\n  return { title, due };\n}\n\nfunction parseFinish(text) {\n  // !finished task <TaskID or Title>\n  const m = /^!finished\\s+task\\s+(.+)$/i.exec(text);\n  if (!m) return null;\n  const target = m[1].trim();\n  if (!target) return null;\n\n  const idMatch = /^(\\d+)$/.exec(target);\n  if (idMatch) return { by: \"id\", id: Number(idMatch[1]) };\n\n  return { by: \"title\", title: target };\n}\n\n// Accept: !list, !list task, !list tasks  (case-insensitive)\nfunction parseList(text) {\n  return /^!list(?:\\s+tasks?)?$/i.test(text);\n}\n\nlet cmd = null;\nlet payload = {};\n\nif (/^!add\\s+task/i.test(content)) {\n  cmd = \"add\";\n  const parsed = parseAdd(content);\n  if (!parsed) {\n    return [{ json: { error: true, userId, message: \"Could not parse `!add task`. Try: `!add task Buy milk | due 2025-09-25`\" } }];\n  }\n  payload = parsed;\n} else if (/^!finished\\s+task/i.test(content)) {\n  cmd = \"finish\";\n  const parsed = parseFinish(content);\n  if (!parsed) {\n    return [{ json: { error: true, userId, message: \"Could not parse `!finished task`. Try: `!finished task 12` or `!finished task Buy milk`\" } }];\n  }\n  payload = parsed;\n} else if (parseList(content)) {\n  cmd = \"list\";\n} else {\n  // Not our command; let the workflow skip\n  return [{ json: { skip: true, reason: \"Not a tasks command\", userId } }];\n}\n\nreturn [{ json: { cmd, userId, ...payload } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        224
+      ],
+      "id": "7ed6f703-caba-4505-bb51-18ffdecd2a61",
+      "name": "Parse Task Command"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rec = $json; // from Airtable Create\nconst f = rec.fields || {};\nconst taskId = f[\"Task ID\"] ?? f.task_id ?? \"(?)\";\nconst title  = f.Title ?? f.title ?? \"(untitled)\";\nconst due    = f.Due ?? f.due ?? null;\n\nlet msg = `Task #${taskId} \"${title}\" logged.`;\nif (due) msg += ` Due ${due}.`;\nmsg += \" Don’t let it rot there.\";\n\nreturn [{ json: { content: msg } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        224
+      ],
+      "id": "d1ea9931-233c-44b3-9651-9e1364656fc2",
+      "name": "Format Add Reply"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appTxK7lxuhWmaadj",
+          "mode": "list",
+          "cachedResultName": "Spiffy OS",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblovPAlFPf5T7JUj",
+          "mode": "list",
+          "cachedResultName": "Tasks",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj/tblovPAlFPf5T7JUj"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "title": "={{ $('Command Check').item.json.primary_command.args }}",
+            "user": "={{ $('Pass Command').item.json.user_id }}",
+            "due": "={{$json.due || undefined}}",
+            "status": "Open"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "task_id",
+              "displayName": "task_id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Open",
+                  "value": "Open"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "user",
+              "displayName": "user",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "due",
+              "displayName": "due",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "created",
+              "displayName": "created",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "completed",
+              "displayName": "completed",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "options": [],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        768,
+        224
+      ],
+      "id": "5734f83c-7b44-440a-9615-1d6541ab7349",
+      "name": "Add Task (Airtable)",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "7i5latSwRXSxG7EC",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "{{DISCORD_GUILD_ID}}",
+          "mode": "list",
+          "cachedResultName": "Spiffy's Server!",
+          "cachedResultUrl": "https://discord.com/channels/{{DISCORD_GUILD_ID}}"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "{{DISCORD_CHANNEL_ID}}",
+          "mode": "id"
+        },
+        "content": "={{$json.content}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        224
+      ],
+      "id": "0c42872f-bbde-46cb-bf41-244817c0449c",
+      "name": "Confirm Add",
+      "webhookId": "dae227a4-b42b-489e-b9dc-0e37d4630f5e",
+      "credentials": {
+        "discordBotApi": {
+          "id": "{{DISCORD_BOT_CREDENTIAL_ID}}",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appTxK7lxuhWmaadj",
+          "mode": "list",
+          "cachedResultName": "Spiffy OS",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblovPAlFPf5T7JUj",
+          "mode": "list",
+          "cachedResultName": "Tasks",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj/tblovPAlFPf5T7JUj"
+        },
+        "filterByFormula": "=AND({status}='Open', {user}='{{ $('Switch').item.json.user_id }}')",
+        "options": {
+          "fields": [
+            "task_id",
+            "title",
+            "status"
+          ]
+        },
+        "sort": {
+          "property": [
+            {
+              "field": "task_id"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        992,
+        32
+      ],
+      "id": "9b27bbfa-34a0-4979-be8b-c4f80298adf4",
+      "name": "List (Airtable)",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "7i5latSwRXSxG7EC",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Robust Airtable list formatter: handles raw, split, and simplified outputs\nfunction normalize(items) {\n  // Case A: single item with .json.records[]\n  if (items.length === 1 && Array.isArray(items[0].json?.records)) {\n    return items[0].json.records.map(r => r.fields || {});\n  }\n  // Case B: multiple items, each with .json.fields (split mode)\n  if (items.length >= 1 && items[0].json?.fields) {\n    return items.map(i => i.json.fields || {});\n  }\n  // Case C: simplified/flattened items (top-level keys: title/status/task_id/due)\n  if (items.length >= 1) {\n    return items.map(i => {\n      const j = i.json || {};\n      return {\n        \"Task ID\": j[\"Task ID\"] ?? j[\"task_id\"] ?? j[\"TaskID\"] ?? j[\"Task Id\"] ?? j[\"Auto number\"] ?? j[\"Auto Number\"] ?? j.id,\n        Title: j.Title ?? j.title ?? j.Task ?? j.name ?? \"(untitled)\",\n        Due: j.Due ?? j.due ?? j[\"Due Date\"] ?? j[\"due_date\"] ?? null,\n        Status: j.Status ?? j.status ?? null,\n        User: j.User ?? j.user ?? null,\n      };\n    });\n  }\n  return [];\n}\n\nconst items = $input.all();\nconst recs = normalize(items);\n\nif (!recs || recs.length === 0) {\n  return [{ json: { content: \"No open tasks. Add one, then try not to forget it.\" } }];\n}\n\n// --- helpers for date labeling ---\nfunction ymd(date) { return date.toISOString().slice(0,10); }\nconst today = ymd(new Date());\n\nfunction labelDue(d) {\n  if (!d) return \"—\";\n  const s = d.slice(0,10);\n  if (s === today) return \"today\";\n  if (s < today)  return `${s} (overdue)`;\n  return s;\n}\n\n// Build lines\nconst lines = recs.map(f => {\n  const id = f[\"Task ID\"];\n  const title = f.Title || \"(untitled)\";\n  const due = labelDue(f.Due);\n  return `[#${id}] ${title} — due ${due}`;\n});\n\n// Spiffy header: two short sentences, jab + directive\nconst count = recs.length;\nconst head = `Status: ${count} open ${count === 1 ? \"task\" : \"tasks\"}. Close one.`;\n\n// Final message\nconst msg = [head, ...lines].join(\"\\n\");\nreturn [{ json: { content: msg } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        32
+      ],
+      "id": "cd635c0b-3a5f-42a4-9714-fade5ff5a102",
+      "name": "Format List Reply"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "{{DISCORD_GUILD_ID}}",
+          "mode": "list",
+          "cachedResultName": "Spiffy's Server!",
+          "cachedResultUrl": "https://discord.com/channels/{{DISCORD_GUILD_ID}}"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "{{DISCORD_CHANNEL_ID}}",
+          "mode": "id"
+        },
+        "content": "={{$json.content}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        32
+      ],
+      "id": "85e9ddd3-b1e6-4b8e-b000-fdffdb42e1db",
+      "name": "Send List",
+      "webhookId": "dae227a4-b42b-489e-b9dc-0e37d4630f5e",
+      "credentials": {
+        "discordBotApi": {
+          "id": "{{DISCORD_BOT_CREDENTIAL_ID}}",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Inputs: Discord message event in $json\n// Tries multiple paths because some bridges normalize/extract the command.\nconst raw =\n  ($json.content ?? $json.cleanContent ?? $json.command ?? $json.pc_name ?? \"\")\n    .toString();\n\nconst content = raw.replace(/\\s+/g, \" \").trim();\n\nconst userId =\n  $json.author_id ||\n  $json.author?.id ||\n  $json.user?.id ||\n  $json.member?.user?.id ||\n  \"unknown\";\n\n// ====== REGEX HELPERS (allow with or without \"!\") ======\nconst ADD_RE     = /^!?add\\s+task\\s+(.+)$/i;          // captures \"<title> [ | due YYYY-MM-DD ]\"\nconst FINISH_RE  = /^!?finished\\s+task\\s+(.+)$/i;     // captures \"<TaskID or Title>\"\nconst LIST_RE    = /^!?(?:list|ls)(?:\\s+tasks?)?$/i;  // matches !list / list / !ls / ls / ... + optional \"task[s]\"\n\n// ====== PARSERS ======\nfunction parseAdd(text) {\n  const m = ADD_RE.exec(text);\n  if (!m) return null;\n  const rawRemainder = m[1].trim();\n\n  let title = rawRemainder;\n  let due = null;\n\n  const parts = rawRemainder.split(/\\|\\s*due\\s+/i);\n  if (parts.length === 2) {\n    title = parts[0].trim();\n    const d = parts[1].trim();\n    const dm = /^(\\d{4}-\\d{2}-\\d{2})$/.exec(d);\n    if (dm) due = dm[1];\n  }\n  if (!title) return null;\n  return { title, due };\n}\n\nfunction parseFinish(text) {\n  const m = FINISH_RE.exec(text);\n  if (!m) return null;\n  const target = m[1].trim();\n  if (!target) return null;\n\n  const idMatch = /^(\\d+)$/.exec(target);\n  if (idMatch) return { by: \"id\", id: Number(idMatch[1]) };\n  return { by: \"title\", title: target };\n}\n\nfunction isList(text) {\n  return LIST_RE.test(text);\n}\n\n// ====== ROUTER ======\nlet cmd = null;\nlet payload = {};\n\nif (ADD_RE.test(content)) {\n  cmd = \"add\";\n  const parsed = parseAdd(content);\n  if (!parsed) {\n    return [{\n      json: {\n        error: true,\n        userId,\n        message: \"Could not parse `add`. Try: `!add task Buy milk | due 2025-09-25`\"\n      }\n    }];\n  }\n  payload = parsed;\n\n} else if (FINISH_RE.test(content)) {\n  cmd = \"finish\";\n  const parsed = parseFinish(content);\n  if (!parsed) {\n    return [{\n      json: {\n        error: true,\n        userId,\n        message: \"Could not parse `finished`. Try: `!finished task 12` or `!finished task Buy milk`\"\n      }\n    }];\n  }\n  payload = parsed;\n\n} else if (isList(content)) {\n  cmd = \"list\";\n\n} else {\n  // Not our command; let the workflow skip cleanly\n  return [{ json: { skip: true, reason: \"Not a tasks command\", seen: content, userId } }];\n}\n\nreturn [{ json: { cmd, userId, ...payload, seen: content } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        32
+      ],
+      "id": "f1029322-9691-46be-8fbd-d584f26f9418",
+      "name": "Parse Task Command1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2a5adaea-3926-4762-bcdc-1a07a6ca5a91",
+              "name": "pc_name",
+              "value": "={{ $('Command Check').item.json.primary_command.name }}",
+              "type": "string"
+            },
+            {
+              "id": "39b2f31a-f33d-48fa-a1f5-34d97c3f0936",
+              "name": "pc_args",
+              "value": "={{ $('Command Check').item.json.primary_command.args }}",
+              "type": "string"
+            },
+            {
+              "id": "bf83e68a-5924-41b1-911e-a3d55b6dbf23",
+              "name": "channel_id",
+              "value": "={{ $('Edit Fields').item.json['channel id'] }}",
+              "type": "string"
+            },
+            {
+              "id": "7ab81ff5-1084-42b0-abf9-4c64ca4f6cae",
+              "name": "author_id",
+              "value": "={{ $('Edit Fields').item.json['author id'] }}",
+              "type": "string"
+            },
+            {
+              "id": "e865f339-8013-4dac-b456-0e4a11dea571",
+              "name": "message_id",
+              "value": "={{ $('Edit Fields').item.json['message id'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        32
+      ],
+      "id": "30481cd2-f29f-4e82-917b-ee0b54f31d09",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2a5adaea-3926-4762-bcdc-1a07a6ca5a91",
+              "name": "pc_name",
+              "value": "={{ $('Command Check').item.json.primary_command.name }}",
+              "type": "string"
+            },
+            {
+              "id": "39b2f31a-f33d-48fa-a1f5-34d97c3f0936",
+              "name": "pc_args",
+              "value": "={{ $('Command Check').item.json.primary_command.args }}",
+              "type": "string"
+            },
+            {
+              "id": "bf83e68a-5924-41b1-911e-a3d55b6dbf23",
+              "name": "channel_id",
+              "value": "={{ $('Edit Fields').item.json['channel id'] }}",
+              "type": "string"
+            },
+            {
+              "id": "7ab81ff5-1084-42b0-abf9-4c64ca4f6cae",
+              "name": "author_id",
+              "value": "={{ $('Edit Fields').item.json['author id'] }}",
+              "type": "string"
+            },
+            {
+              "id": "e865f339-8013-4dac-b456-0e4a11dea571",
+              "name": "message_id",
+              "value": "={{ $('Edit Fields').item.json['message id'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        416
+      ],
+      "id": "735185c5-75df-4e42-b6d1-eec6c396f377",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appTxK7lxuhWmaadj",
+          "mode": "list",
+          "cachedResultName": "Spiffy OS",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblovPAlFPf5T7JUj",
+          "mode": "list",
+          "cachedResultName": "Tasks",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj/tblovPAlFPf5T7JUj"
+        },
+        "filterByFormula": "=AND(\n  {status}='Open',\n  {user}='{{ $('Pass Command').item.json.user_id }}',\n  {task_id}={{$json.id}}\n)\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        992,
+        416
+      ],
+      "id": "7aad75d5-350a-48f9-8043-4a0ca9c6f1aa",
+      "name": "Find Finished Task",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "7i5latSwRXSxG7EC",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull the first matching record in any shape, and prepare an update payload.\nfunction firstRecord(items) {\n  if (items.length === 1 && Array.isArray(items[0].json?.records) && items[0].json.records.length) {\n    return items[0].json.records[0];\n  }\n  if (items.length >= 1 && items[0].json?.fields) {\n    return { id: items[0].json.id, fields: items[0].json.fields };\n  }\n  if (items.length >= 1 && (items[0].json?.title || items[0].json?.Title)) {\n    // flattened item; cannot guarantee Airtable record id\n    return { id: items[0].json.id, fields: {\n      Title: items[0].json.Title ?? items[0].json.title,\n      \"Task ID\": items[0].json[\"Task ID\"] ?? items[0].json.task_id\n    }};\n  }\n  return null;\n}\n\nconst rec = firstRecord($input.all());\nif (!rec || !rec.id) {\n  return [{ json: { stop: true, content: \"Couldn’t locate a record ID to update. Check Airtable List node settings.\" } }];\n}\n\nreturn [{\n  json: {\n    recordId: rec.id,\n    updateFields: {\n      Status: \"Done\",\n      Completed: new Date().toISOString().slice(0,10)\n    }\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        416
+      ],
+      "id": "20c013dc-03c5-4fb4-a518-8189da6e23a3",
+      "name": "Pick Record + Build Update"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appTxK7lxuhWmaadj",
+          "mode": "list",
+          "cachedResultName": "Spiffy OS",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblovPAlFPf5T7JUj",
+          "mode": "list",
+          "cachedResultName": "Tasks",
+          "cachedResultUrl": "https://airtable.com/appTxK7lxuhWmaadj/tblovPAlFPf5T7JUj"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{$json.recordId}}",
+            "status": "Done"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "task_id",
+              "displayName": "task_id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Open",
+                  "value": "Open"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "user",
+              "displayName": "user",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "due",
+              "displayName": "due",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "created",
+              "displayName": "created",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "completed",
+              "displayName": "completed",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "options": [],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1440,
+        416
+      ],
+      "id": "bcd67192-9f38-4311-b0a6-e0fb14e29752",
+      "name": "Set Task as Finished",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "7i5latSwRXSxG7EC",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Works whether Update returns fields directly or wrapped.\nconst f =\n  $json.fields\n  || ($json.records && $json.records[0]?.fields)\n  || $json\n  || {};\n\nconst id = f[\"Task ID\"] ?? f.task_id ?? \"(?)\";\nconst title = f.Title ?? f.title ?? \"(untitled)\";\n\n// Spiffy style: blunt, sardonic, 2 short sentences.\nconst msg = `Task #${id} \"${title}\" finally done. Took you long enough—add the next one.`;\n\nreturn [{ json: { content: msg } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1664,
+        416
+      ],
+      "id": "e7fa1a2f-1596-404e-ae68-bf8e832e5aa8",
+      "name": "Format Success Reply"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "{{DISCORD_GUILD_ID}}",
+          "mode": "list",
+          "cachedResultName": "Spiffy's Server!",
+          "cachedResultUrl": "https://discord.com/channels/{{DISCORD_GUILD_ID}}"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "{{DISCORD_CHANNEL_ID}}",
+          "mode": "id"
+        },
+        "content": "={{$json.content}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        416
+      ],
+      "id": "d16b430c-3867-44ec-b0d4-e5473b56ad41",
+      "name": "Send Completion Message",
+      "webhookId": "dae227a4-b42b-489e-b9dc-0e37d4630f5e",
+      "credentials": {
+        "discordBotApi": {
+          "id": "{{DISCORD_BOT_CREDENTIAL_ID}}",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- SOURCE FIELDS (be forgiving) ----\nconst rawName =\n  $json.pc_name ?? $json.command ?? $json.name ?? null;\n\nconst rawArgs =\n  $json.pc_args ?? $json.args ?? null;\n\n// If pc_name/pc_args aren't provided, fall back to content\nconst rawContent = ($json.content ?? $json.cleanContent ?? \"\").toString().trim();\n\n// Derive command + args\nlet cmdWord, argsText;\n\nif (rawName) {\n  cmdWord = rawName.toString().trim().replace(/^!+/, \"\"); // strip leading !\n  argsText = (rawArgs ?? \"\").toString().trim();\n} else {\n  // Split first token as command, rest as args\n  const m = /^!?(?<cmd>\\S+)(?:\\s+(?<args>.*))?$/i.exec(rawContent) || { groups: {} };\n  cmdWord = (m.groups.cmd || \"\").replace(/^!+/, \"\");\n  argsText = (m.groups.args || \"\").trim();\n}\n\n// User id\nconst userId =\n  $json.author_id ||\n  $json.author?.id ||\n  $json.user?.id ||\n  $json.member?.user?.id ||\n  \"unknown\";\n\n// ---- HELPERS ----\nfunction stripPrefixTask(t) {\n  // Convert \"task 1\" -> \"1\", keep titles untouched if they don't start with 'task '\n  return t.replace(/^\\s*task\\s+/i, \"\").trim();\n}\n\n// Accept aliases\nconst isAdd      = /^add$/i.test(cmdWord);\nconst isFinish   = /^(finished|finish)$/i.test(cmdWord);   // accept \"finished\" or \"finish\"\nconst isList     = /^(list|ls)$/i.test(cmdWord);           // accept \"list\" or \"ls\"\n\n// ---- ROUTES ----\nif (isAdd) {\n  // Accept: \"task <title> [ | due YYYY-MM-DD ]\" with or without \"task \" prefix\n  let text = argsText.replace(/^\\s*task\\s+/i, \"\").trim();\n  if (!text) {\n    return [{ json: { error: true, userId, message: \"Could not parse `add`. Try: `!add task Buy milk | due 2025-09-25`\" } }];\n  }\n\n  let title = text, due = null;\n  const parts = text.split(/\\|\\s*due\\s+/i);\n  if (parts.length === 2) {\n    title = parts[0].trim();\n    const m = /^(\\d{4}-\\d{2}-\\d{2})$/.exec(parts[1].trim());\n    if (m) due = m[1];\n  }\n  return [{ json: { cmd: \"add\", userId, title, due, seen: { cmdWord, argsText } } }];\n}\n\nif (isFinish) {\n  // Accept: \"task 123\", \"123\", or any title\n  const target = stripPrefixTask(argsText);\n  if (!target) {\n    return [{ json: { error: true, userId, message: \"Could not parse `finished`. Try: `finished task 12` or `finished task Buy milk`\" } }];\n  }\n  const idMatch = /^(\\d+)$/.exec(target);\n  if (idMatch) {\n    return [{ json: { cmd: \"finish\", userId, by: \"id\", id: Number(idMatch[1]), seen: { cmdWord, argsText } } }];\n  }\n  return [{ json: { cmd: \"finish\", userId, by: \"title\", title: target, seen: { cmdWord, argsText } } }];\n}\n\nif (isList) {\n  // Accept: \"list\", \"ls\", optionally followed by \"task\"/\"tasks\" or nothing\n  // We don't care about argsText for listing.\n  return [{ json: { cmd: \"list\", userId, seen: { cmdWord, argsText } } }];\n}\n\n// Not our command\nreturn [{ json: { skip: true, reason: \"Not a tasks command\", userId, seen: { cmdWord, argsText, rawContent } } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        416
+      ],
+      "id": "4c120128-a8ad-431d-a9f3-893d13a75569",
+      "name": "Parse Task Command2"
+    }
+  ],
+  "pinData": {
+    "Input: General Channel": [
+      {
+        "json": {
+          "headers": {
+            "host": "bot.spiffybot.me",
+            "user-agent": "axios/1.8.4",
+            "content-length": "1272",
+            "accept": "application/json, text/plain, */*",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1",
+            "cf-connecting-ip": "208.77.246.59",
+            "cf-ipcountry": "SG",
+            "cf-ray": "980e762019a5fd80-SIN",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-warp-tag-id": "017db70f-9512-4b6f-974b-79dc92431eff",
+            "connection": "keep-alive",
+            "content-type": "application/json",
+            "x-forwarded-for": "208.77.246.59",
+            "x-forwarded-proto": "https"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "event_type": "message_create",
+            "timestamp": 1758173532145,
+            "content": {
+              "text": "Hi Spiffy! Welcome to your very own discord server",
+              "type": "message_create"
+            },
+            "author": {
+              "id": "214191589923356672",
+              "username": "gabriellamariejpg",
+              "discriminator": "0"
+            },
+            "channel": {
+              "id": "{{DISCORD_GENERAL_CHANNEL_ID}}",
+              "name": "general",
+              "type": "text"
+            },
+            "guild": {
+              "id": "{{DISCORD_GUILD_ID}}",
+              "name": "Spiffy's Server!"
+            },
+            "message_id": "1418107319061053440",
+            "original_message": {
+              "channelId": "{{DISCORD_GENERAL_CHANNEL_ID}}",
+              "guildId": "{{DISCORD_GUILD_ID}}",
+              "id": "1418107319061053440",
+              "createdTimestamp": 1758173532024,
+              "type": 0,
+              "system": false,
+              "content": "Hi Spiffy! Welcome to your very own discord server",
+              "authorId": "214191589923356672",
+              "pinned": false,
+              "tts": false,
+              "nonce": "1418107318616195072",
+              "embeds": [],
+              "components": [],
+              "attachments": [],
+              "stickers": [],
+              "position": null,
+              "roleSubscriptionData": null,
+              "resolved": null,
+              "editedTimestamp": null,
+              "mentions": {
+                "everyone": false,
+                "users": [],
+                "roles": [],
+                "crosspostedChannels": [],
+                "repliedUser": null,
+                "members": [],
+                "channels": []
+              },
+              "webhookId": null,
+              "groupActivityApplicationId": null,
+              "applicationId": null,
+              "activity": null,
+              "flags": 0,
+              "reference": null,
+              "interactionMetadata": null,
+              "interaction": null,
+              "poll": null,
+              "messageSnapshots": [],
+              "call": null,
+              "cleanContent": "Hi Spiffy! Welcome to your very own discord server"
+            }
+          },
+          "webhookUrl": "https://bot.spiffybot.me/webhook/discord",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "Input: Gabi Channel": [
+      {
+        "json": {
+          "headers": {
+            "host": "bot.spiffybot.me",
+            "user-agent": "axios/1.8.4",
+            "content-length": "1152",
+            "accept": "application/json, text/plain, */*",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1",
+            "cf-connecting-ip": "208.77.246.59",
+            "cf-ipcountry": "SG",
+            "cf-ray": "9814cb76d8c3dc19-SIN",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-warp-tag-id": "017db70f-9512-4b6f-974b-79dc92431eff",
+            "connection": "keep-alive",
+            "content-type": "application/json",
+            "x-forwarded-for": "208.77.246.59",
+            "x-forwarded-proto": "https"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "event_type": "message_create",
+            "timestamp": 1758239942179,
+            "content": {
+              "text": "Hey spiffy!",
+              "type": "message_create"
+            },
+            "author": {
+              "id": "214191589923356672",
+              "username": "gabriellamariejpg",
+              "discriminator": "0"
+            },
+            "channel": {
+              "id": "{{DISCORD_CHANNEL_ID}}",
+              "name": "gabi",
+              "type": "text"
+            },
+            "guild": {
+              "id": "{{DISCORD_GUILD_ID}}",
+              "name": "Spiffy's Server!"
+            },
+            "message_id": "1418385862177325087",
+            "original_message": {
+              "channelId": "{{DISCORD_CHANNEL_ID}}",
+              "guildId": "{{DISCORD_GUILD_ID}}",
+              "id": "1418385862177325087",
+              "createdTimestamp": 1758239941878,
+              "type": 0,
+              "system": false,
+              "content": "Hey spiffy!",
+              "authorId": "214191589923356672",
+              "pinned": false,
+              "tts": false,
+              "nonce": "1418385864030945280",
+              "embeds": [],
+              "components": [],
+              "attachments": [],
+              "stickers": [],
+              "position": null,
+              "roleSubscriptionData": null,
+              "resolved": null,
+              "editedTimestamp": null,
+              "mentions": {
+                "everyone": false,
+                "users": [],
+                "roles": [],
+                "crosspostedChannels": [],
+                "repliedUser": null,
+                "members": [],
+                "channels": []
+              },
+              "webhookId": null,
+              "groupActivityApplicationId": null,
+              "applicationId": null,
+              "activity": null,
+              "flags": 0,
+              "reference": null,
+              "interactionMetadata": null,
+              "interaction": null,
+              "poll": null,
+              "messageSnapshots": [],
+              "call": null,
+              "cleanContent": "Hey spiffy!"
+            }
+          },
+          "webhookUrl": "https://bot.spiffybot.me/webhook/discord/gabi",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "Input: Spiffy Lab Channel": [
+      {
+        "json": {
+          "headers": {
+            "host": "bot.spiffybot.me",
+            "user-agent": "axios/1.8.4",
+            "content-length": "1173",
+            "accept": "application/json, text/plain, */*",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1",
+            "cf-connecting-ip": "208.77.246.59",
+            "cf-ipcountry": "SG",
+            "cf-ray": "9826c40bcd0c252c-SIN",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-warp-tag-id": "017db70f-9512-4b6f-974b-79dc92431eff",
+            "connection": "keep-alive",
+            "content-type": "application/json",
+            "x-forwarded-for": "208.77.246.59",
+            "x-forwarded-proto": "https"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "event_type": "message_create",
+            "timestamp": 1758428381998,
+            "content": {
+              "text": "!finished task 1",
+              "type": "message_create"
+            },
+            "author": {
+              "id": "214191589923356672",
+              "username": "gabriellamariejpg",
+              "discriminator": "0"
+            },
+            "channel": {
+              "id": "1418045183282384926",
+              "name": "spiffy-lab",
+              "type": "text"
+            },
+            "guild": {
+              "id": "{{DISCORD_GUILD_ID}}",
+              "name": "Spiffy's Server!"
+            },
+            "message_id": "1419176235681976344",
+            "original_message": {
+              "channelId": "1418045183282384926",
+              "guildId": "{{DISCORD_GUILD_ID}}",
+              "id": "1419176235681976344",
+              "createdTimestamp": 1758428381606,
+              "type": 0,
+              "system": false,
+              "content": "!finished task 1",
+              "authorId": "214191589923356672",
+              "pinned": false,
+              "tts": false,
+              "nonce": "1419176234675339264",
+              "embeds": [],
+              "components": [],
+              "attachments": [],
+              "stickers": [],
+              "position": null,
+              "roleSubscriptionData": null,
+              "resolved": null,
+              "editedTimestamp": null,
+              "mentions": {
+                "everyone": false,
+                "users": [],
+                "roles": [],
+                "crosspostedChannels": [],
+                "repliedUser": null,
+                "members": [],
+                "channels": []
+              },
+              "webhookId": null,
+              "groupActivityApplicationId": null,
+              "applicationId": null,
+              "activity": null,
+              "flags": 0,
+              "reference": null,
+              "interactionMetadata": null,
+              "interaction": null,
+              "poll": null,
+              "messageSnapshots": [],
+              "call": null,
+              "cleanContent": "!finished task 1"
+            }
+          },
+          "webhookUrl": "https://bot.spiffybot.me/webhook/discord-lab",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Ollama Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Spiffy Lab",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input: Spiffy Lab Channel": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input: General Channel": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Spiffy Lab": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sticker Picker": {
+      "main": [
+        [
+          {
+            "node": "Normalize Emoji Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Normalize Emoji Payload": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "React with an emoji to a message": {
+      "main": [
+        []
+      ]
+    },
+    "Input: Gabi Channel": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Get or Create User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get or Create User": {
+      "main": [
+        [
+          {
+            "node": "Set user_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set user_id": {
+      "main": [
+        [
+          {
+            "node": "Sticker Picker",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gate: Should Memorize?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Embedding (Query)": {
+      "main": [
+        [
+          {
+            "node": "Format Query Vector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Query Vector": {
+      "main": [
+        [
+          {
+            "node": "Fetch Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Memory": {
+      "main": [
+        [
+          {
+            "node": "Pack Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pack Memory": {
+      "main": [
+        [
+          {
+            "node": "Spiffy Lab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Event": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Embedding (Event)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Embedding (Event)": {
+      "main": [
+        [
+          {
+            "node": "Format Event Vector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Event Vector": {
+      "main": [
+        [
+          {
+            "node": "Update Event Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Event Embedding": {
+      "main": [
+        [
+          {
+            "node": "Return Event Id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [],
+        [
+          {
+            "node": "React with an emoji to a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search for Command": {
+      "main": [
+        [
+          {
+            "node": "Command Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Command Check": {
+      "main": [
+        [
+          {
+            "node": "Pass Command",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Pass Command": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Parse Task Command",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ollama Health",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Command List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Health": {
+      "main": [
+        [
+          {
+            "node": "Airtable Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Format Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Status": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Status": {
+      "main": [
+        [
+          {
+            "node": "Status Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Profile Memory": {
+      "main": [
+        [
+          {
+            "node": "Confirm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Profile Fact": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "DB Failure Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Profile Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm": {
+      "main": [
+        [
+          {
+            "node": "Ack Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ack Profile": {
+      "main": [
+        [
+          {
+            "node": "Confirm Memory Saved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Sticker Picker",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Validate Profile Fact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Remind": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Send Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Parse Remind",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate: Should Memorize?": {
+      "main": [
+        [
+          {
+            "node": "Add Event",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "OpenAI Embedding (Query)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Search for Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Task Command": {
+      "main": [
+        [
+          {
+            "node": "Add Task (Airtable)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Task (Airtable)": {
+      "main": [
+        [
+          {
+            "node": "Format Add Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Add Reply": {
+      "main": [
+        [
+          {
+            "node": "Confirm Add",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List (Airtable)": {
+      "main": [
+        [
+          {
+            "node": "Format List Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format List Reply": {
+      "main": [
+        [
+          {
+            "node": "Send List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Task Command1": {
+      "main": [
+        [
+          {
+            "node": "List (Airtable)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Parse Task Command1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Parse Task Command2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Finished Task": {
+      "main": [
+        [
+          {
+            "node": "Pick Record + Build Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Record + Build Update": {
+      "main": [
+        [
+          {
+            "node": "Set Task as Finished",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Task as Finished": {
+      "main": [
+        [
+          {
+            "node": "Format Success Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Success Reply": {
+      "main": [
+        [
+          {
+            "node": "Send Completion Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Task Command2": {
+      "main": [
+        [
+          {
+            "node": "Find Finished Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "xndOgqqFx6JhYAdJ"
+  },
+  "versionId": "{{VERSION_ID}}",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "{{N8N_INSTANCE_ID}}"
+  },
+  "id": "{{WORKFLOW_ID_CHAT}}",
+  "tags": []
+}
